@@ -2,15 +2,35 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import { createServer } from 'http';
 
-const PORT = process.env.MULTIPLAYER_PORT || 3001;
+const PORT = process.env.PORT || process.env.MULTIPLAYER_PORT || 3001;
 const MAX_ROOM_CAPACITY = 30;
 
 // HTTP server for health check and WebSocket upgrade
 const server = createServer((req, res) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  if (req.url === '/health') {
+  const origin = req.headers.origin;
+  if (origin) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+  } else {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+  }
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', '*');
+
+  if (req.method === 'OPTIONS') {
+    res.writeHead(204);
+    res.end();
+    return;
+  }
+
+  if (req.url === '/health' || req.url === '/') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ status: 'ok', rooms: rooms.size, timestamp: Date.now() }));
+    res.end(JSON.stringify({
+      status: 'ok',
+      game: 'Coin Rush Island Multiplayer Server',
+      rooms: rooms.size,
+      timestamp: Date.now()
+    }));
     return;
   }
   res.writeHead(404);
@@ -603,6 +623,6 @@ wss.on('connection', (ws) => {
   });
 });
 
-server.listen(PORT, () => {
-  console.log(`[Coin Rush Island] Multiplayer WebSocket Server listening on http://127.0.0.1:${PORT} (Max ${MAX_ROOM_CAPACITY} players/room)`);
+server.listen(PORT, '0.0.0.0', () => {
+  console.log(`[Coin Rush Island] Multiplayer WebSocket Server listening on 0.0.0.0:${PORT} (Max ${MAX_ROOM_CAPACITY} players/room)`);
 });

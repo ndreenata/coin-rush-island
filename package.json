@@ -8,7 +8,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "server": "node server/multiplayer.js"
+    "server": "node server/multiplayer.js",
+    "start": "node server/multiplayer.js"
   },
   "dependencies": {
     "three": "^0.160.0",

@@ -1016,6 +1016,7 @@ function setupUI() {
         onNameInputChange(mpInput.value);
         setTimeout(() => mpInput.focus(), 60);
       }
+      updateServerBadge();
     });
   }
 
@@ -1133,6 +1134,49 @@ function setupUI() {
           navigator.clipboard.writeText(code);
         }
         showCoinPopup('KODE DISALIN!');
+      }
+    });
+  }
+
+  // Custom WebSocket Server config handlers
+  const wsInput = document.getElementById('mp-custom-ws-input');
+  const btnSaveWs = document.getElementById('btn-save-custom-ws');
+  const serverBadge = document.getElementById('mp-current-server-badge');
+
+  function updateServerBadge() {
+    if (!serverBadge) return;
+    const currentUrl = multiplayerManager ? multiplayerManager.serverUrl : null;
+    if (currentUrl) {
+      serverBadge.textContent = currentUrl;
+      serverBadge.style.color = '#38bdf8';
+    } else {
+      serverBadge.textContent = 'Belum Dikonfigurasi';
+      serverBadge.style.color = '#f87171';
+    }
+    if (wsInput && currentUrl && !wsInput.value) {
+      wsInput.value = currentUrl;
+    }
+  }
+
+  updateServerBadge();
+
+  if (btnSaveWs) {
+    btnSaveWs.addEventListener('click', async () => {
+      const val = wsInput ? wsInput.value.trim() : '';
+      if (!val) {
+        multiplayerManager?.setCustomServerUrl('');
+        updateServerBadge();
+        showMpError('Pengaturan URL server dikosongkan (kembali ke default).');
+        return;
+      }
+      multiplayerManager?.setCustomServerUrl(val);
+      updateServerBadge();
+      showMpError('Menghubungkan ke ' + multiplayerManager.serverUrl + '...');
+      try {
+        await multiplayerManager.connect();
+        showMpError('Berhasil terhubung ke server: ' + multiplayerManager.serverUrl);
+      } catch (err) {
+        showMpError(err?.message || 'Gagal terhubung ke server');
       }
     });
   }

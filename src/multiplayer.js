@@ -74,10 +74,32 @@ export class MultiplayerManager {
     this.broadcastInterval = 50; // 20 Hz
   }
 
-  detectServerUrl() {
-    if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_WS_SERVER_URL) {
-      return import.meta.env.VITE_WS_SERVER_URL;
+  normalizeWsUrl(url) {
+    if (!url) return null;
+    let clean = url.trim();
+    if (clean.startsWith('https://')) clean = 'wss://' + clean.slice(8);
+    else if (clean.startsWith('http://')) clean = 'ws://' + clean.slice(7);
+    else if (!clean.startsWith('ws://') && !clean.startsWith('wss://')) {
+      const isHttps = typeof window !== 'undefined' && window.location.protocol === 'https:';
+      clean = (isHttps ? 'wss://' : 'ws://') + clean;
     }
+    return clean.replace(/\/$/, '');
+  }
+
+  detectServerUrl() {
+    // 1. Check custom URL in localStorage
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const custom = localStorage.getItem('coin_rush_ws_url');
+      if (custom && custom.trim()) {
+        return this.normalizeWsUrl(custom);
+      }
+    }
+
+    // 2. Check environment variable VITE_WS_SERVER_URL
+    if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_WS_SERVER_URL) {
+      return this.normalizeWsUrl(import.meta.env.VITE_WS_SERVER_URL);
+    }
+
     if (typeof window === 'undefined') return 'ws://127.0.0.1:3001';
     const loc = window.location;
     const proto = loc.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -88,6 +110,22 @@ export class MultiplayerManager {
       return null;
     }
     return `${proto}//${host}:3001`;
+  }
+
+  setCustomServerUrl(url) {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      if (url && url.trim()) {
+        localStorage.setItem('coin_rush_ws_url', url.trim());
+      } else {
+        localStorage.removeItem('coin_rush_ws_url');
+      }
+    }
+    this.serverUrl = this.detectServerUrl();
+    if (this.ws) {
+      this.ws.close();
+      this.ws = null;
+    }
+    return this.serverUrl;
   }
 
   connect() {

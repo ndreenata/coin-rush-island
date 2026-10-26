@@ -263,6 +263,26 @@
         <!-- Notification Message -->
         <div id="mp-error-msg" class="mp-error-msg hidden"></div>
 
+        <!-- Cloud Server Config Panel -->
+        <div id="mp-server-config" class="mp-server-config" style="margin-top: 12px; padding: 10px 14px; background: rgba(15, 23, 42, 0.65); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 10px; font-size: 13px;">
+          <div style="display: flex; justify-content: space-between; align-items: center;" id="toggle-server-config">
+            <span style="font-weight: 600; color: #f59e0b; display: flex; align-items: center; gap: 6px;">
+              <svg class="icon-inline" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
+                <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
+                <line x1="6" y1="6" x2="6.01" y2="6"></line>
+                <line x1="6" y1="18" x2="6.01" y2="18"></line>
+              </svg>
+              Server WebSocket:
+            </span>
+            <span id="mp-current-server-badge" style="font-size: 11px; opacity: 0.85; font-family: monospace; max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"></span>
+          </div>
+          <div id="mp-server-config-body" style="margin-top: 8px; display: flex; gap: 6px;">
+            <input type="text" id="mp-custom-ws-input" class="mp-input" placeholder="wss://your-server.onrender.com" style="padding: 6px 10px; font-size: 12px; height: 32px; flex: 1;" />
+            <button id="btn-save-custom-ws" class="btn btn-primary" style="padding: 6px 12px; font-size: 12px; white-space: nowrap; height: 32px;">HUBUNGKAN</button>
+          </div>
+        </div>
+
         <button id="btn-back-mp" class="btn btn-secondary mp-back-btn">
           <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="19" y1="12" x2="5" y2="12"></line>
