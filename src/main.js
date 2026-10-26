@@ -34,6 +34,7 @@ import { CrocodileManager } from './crocodiles.js';
 import { Minimap } from './minimap.js';
 import { MultiplayerManager, createNameTagSprite } from './multiplayer.js';
 import { TrapManager } from './traps.js';
+import { supabaseLeaderboard } from './supabase.js';
 import {
   resumeAudio,
   playCoinSound,
@@ -881,6 +882,75 @@ function setupUI() {
     document.getElementById('settings-menu').classList.add('hidden');
     document.getElementById('main-menu').classList.remove('hidden');
   });
+
+  // Online Leaderboard modal handlers
+  const btnLeaderboard = document.getElementById('btn-leaderboard');
+  const modalLeaderboard = document.getElementById('leaderboard-menu');
+  const btnBackLeaderboard = document.getElementById('btn-back-leaderboard');
+  const btnRefreshLeaderboard = document.getElementById('btn-refresh-leaderboard');
+  const listLeaderboard = document.getElementById('leaderboard-list');
+  const statusLeaderboard = document.getElementById('leaderboard-status');
+
+  async function renderLeaderboard() {
+    if (!statusLeaderboard || !listLeaderboard) return;
+    if (!supabaseLeaderboard.isConfigured()) {
+      statusLeaderboard.textContent = 'Penyimpanan Lokal Aktif (Supabase Belum Dikonfigurasi)';
+      listLeaderboard.innerHTML = `
+        <div style="padding: 14px; text-align: center; color: var(--text-secondary); font-size: 13px; line-height: 1.6;">
+          <p><strong>Rekor Lokal Perangkat Ini:</strong> <span style="color: var(--accent-gold); font-weight: 700;">${highScore} Poin</span></p>
+          <p style="margin-top: 8px;">Papan skor global tersinkronisasi dapat diaktifkan dengan menambahkan variabel <code>VITE_SUPABASE_URL</code> dan <code>VITE_SUPABASE_ANON_KEY</code> di lingkungan Vercel / .env.</p>
+        </div>
+      `;
+      return;
+    }
+
+    statusLeaderboard.textContent = 'Mengambil data rekor global...';
+    listLeaderboard.innerHTML = '<div style="padding: 16px; text-align: center; color: var(--text-secondary);">Memuat...</div>';
+
+    const res = await supabaseLeaderboard.fetchTopScores(10);
+    if (!res.success) {
+      statusLeaderboard.textContent = 'Gagal memuat data';
+      listLeaderboard.innerHTML = `<div style="padding: 14px; text-align: center; color: #ef4444; font-size: 13px;">Koneksi Supabase: ${res.error || 'Terjadi kesalahan'}</div>`;
+      return;
+    }
+
+    statusLeaderboard.textContent = '10 Petualang Terhebat Global';
+    if (!res.scores || res.scores.length === 0) {
+      listLeaderboard.innerHTML = '<div style="padding: 16px; text-align: center; color: var(--text-secondary);">Belum ada rekor tercatat. Jadilah yang pertama!</div>';
+      return;
+    }
+
+    listLeaderboard.innerHTML = res.scores.map((item, idx) => `
+      <div class="mp-rank-row ${idx === 0 ? 'winner' : ''}">
+        <div class="mp-rank-left">
+          <span class="mp-rank-pos">${idx === 0 ? '<svg class="icon-inline" viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z"/></svg> 1' : (idx + 1)}</span>
+          <span style="font-weight: 600;">${item.player_name || 'Petualang'}</span>
+        </div>
+        <div class="mp-rank-right" style="font-weight: 700; color: var(--accent-gold);">${item.score} Poin</div>
+      </div>
+    `).join('');
+  }
+
+  if (btnLeaderboard) {
+    btnLeaderboard.addEventListener('click', () => {
+      document.getElementById('main-menu').classList.add('hidden');
+      if (modalLeaderboard) modalLeaderboard.classList.remove('hidden');
+      renderLeaderboard();
+    });
+  }
+
+  if (btnBackLeaderboard) {
+    btnBackLeaderboard.addEventListener('click', () => {
+      if (modalLeaderboard) modalLeaderboard.classList.add('hidden');
+      document.getElementById('main-menu').classList.remove('hidden');
+    });
+  }
+
+  if (btnRefreshLeaderboard) {
+    btnRefreshLeaderboard.addEventListener('click', () => {
+      renderLeaderboard();
+    });
+  }
 
   document.getElementById('sfx-toggle').addEventListener('click', (e) => {
     const active = e.target.classList.toggle('active');
@@ -1838,6 +1908,12 @@ function endGame(reason = 'time') {
     } catch (e) {
       // Ignore if localStorage unavailable
     }
+  }
+
+  // Submit to Supabase leaderboard if online & configured
+  if (score > 0 && supabaseLeaderboard.isConfigured()) {
+    const pName = localStorage.getItem('coin_rush_player_name') || 'Petualang';
+    supabaseLeaderboard.submitScore(pName, score).catch(() => {});
   }
 
   // Update badge on menu

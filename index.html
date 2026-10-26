@@ -55,6 +55,17 @@
             </svg>
             PENGATURAN
           </button>
+          <button id="btn-leaderboard" class="btn btn-secondary">
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path>
+              <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path>
+              <path d="M4 22h16"></path>
+              <path d="M10 14.66V17c0 .55-.45 1-1 1H7c-.55 0-1-.45-1-1v-2.34"></path>
+              <path d="M18 14.66V17c0 .55-.45 1-1 1h-2c-.55 0-1-.45-1-1v-2.34"></path>
+              <path d="M14 6h-4v8.5a2 2 0 0 0 2 2 2 2 0 0 0 2-2V6z"></path>
+            </svg>
+            PAPAN SKOR
+          </button>
         </div>
       </div>
     </div>
@@ -150,6 +161,29 @@
           </svg>
           KEMBALI
         </button>
+      </div>
+    </div>
+
+    <!-- Online Leaderboard Modal -->
+    <div id="leaderboard-menu" class="overlay hidden">
+      <div class="panel mp-panel">
+        <h2>PAPAN SKOR ONLINE</h2>
+        <div id="leaderboard-status" class="mp-status-pill">Memuat data...</div>
+        <div id="leaderboard-container" class="mp-players-container" style="max-height: 260px; overflow-y: auto; margin: 12px 0;">
+          <div id="leaderboard-list" class="mp-players-list"></div>
+        </div>
+        <div class="modal-buttons" style="display: flex; gap: 8px; justify-content: center; margin-top: 12px;">
+          <button id="btn-refresh-leaderboard" class="btn btn-primary" style="padding: 10px 18px; font-size: 14px;">
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="23 4 23 10 17 10"></polyline>
+              <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+            </svg>
+            SEGARKAN
+          </button>
+          <button id="btn-back-leaderboard" class="btn btn-secondary" style="padding: 10px 18px; font-size: 14px;">
+            KEMBALI
+          </button>
+        </div>
       </div>
     </div>
 
