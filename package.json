@@ -1,0 +1,20 @@
+{
+  "name": "coin-rush-island",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Explore the Island. Collect the Treasure. A 3D casual adventure coin collecting game.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "server": "node server/multiplayer.js"
+  },
+  "dependencies": {
+    "three": "^0.160.0",
+    "ws": "^8.22.0"
+  },
+  "devDependencies": {
+    "vite": "^5.4.0"
+  }
+}
