@@ -49,6 +49,20 @@ import {
   setMusicEnabled,
   isSfxEnabled,
   isMusicEnabled,
+  getMasterVolume,
+  setMasterVolume,
+  getMusicVolume,
+  setMusicVolume,
+  getSfxVolume,
+  setSfxVolume,
+  isMuted,
+  setMuted,
+  toggleMute,
+  resetAudioSettings,
+  getAudioSettings,
+  playCinematicIntroChord,
+  playCountdownBeep,
+  playMarkerChime,
 } from './audio.js';
 
 // ===== CONSTANTS =====
@@ -58,7 +72,7 @@ const CAMERA_HEIGHT = 10;
 const CAMERA_DISTANCE = 14;
 const COIN_COLLECT_DIST = 1.8;
 const CHEST_INTERACT_DIST = 2.2; // Comfortable interaction ring
-const POTION_PICKUP_DIST = 1.85; // Reliable pickup distance
+const POTION_PICKUP_DIST = 2.4;  // Expanded reliable pickup distance for smooth gameplay
 const ISLAND_RADIUS = 75;        // Expanded 4-6x open world island
 const PLAYER_RADIUS = 0.30;      // Tighter, responsive character collider radius
 const COIN_POINTS = 10;
@@ -153,6 +167,34 @@ let lastPointerY = 0;
 // Shift Lock State (Roblox Style 360° Lock)
 let isShiftLockActive = false;
 
+function safeRequestPointerLock(canvas) {
+  if (!canvas || typeof canvas.requestPointerLock !== 'function') return;
+  try {
+    const p = canvas.requestPointerLock();
+    if (p && typeof p.catch === 'function') {
+      p.catch(() => {});
+    }
+  } catch (err) {}
+}
+
+function safeExitPointerLock() {
+  if (typeof document.exitPointerLock !== 'function') return;
+  try {
+    const p = document.exitPointerLock();
+    if (p && typeof p.catch === 'function') {
+      p.catch(() => {});
+    }
+  } catch (err) {}
+}
+
+export function isTouchDevice() {
+  return /Android|iPhone|iPad|iPod|Opera Mini|IEMobile/i.test(navigator.userAgent)
+    || ('ontouchstart' in window)
+    || (navigator.maxTouchPoints > 0)
+    || (window.matchMedia && window.matchMedia('(pointer: coarse)').matches)
+    || (window.innerWidth <= 768);
+}
+
 export function toggleShiftLock(forceState) {
   if (typeof forceState === 'boolean') {
     isShiftLockActive = forceState;
@@ -164,40 +206,98 @@ export function toggleShiftLock(forceState) {
   const shiftLockVal = document.getElementById('hud-shift-lock-val');
   const mobileShiftBtn = document.getElementById('mobile-shift-lock');
   const reticle = document.getElementById('shift-lock-reticle');
+  const canvas = renderer ? renderer.domElement : document.getElementById('game-canvas');
 
   if (isShiftLockActive) {
     if (shiftLockBtn) shiftLockBtn.classList.add('active');
     if (shiftLockVal) shiftLockVal.textContent = 'KUNCI';
     if (mobileShiftBtn) mobileShiftBtn.classList.add('active');
-    if (reticle && gameState === 'playing') reticle.classList.remove('hidden');
+    if (reticle && gameState === 'playing' && !isGamePaused) reticle.classList.remove('hidden');
     showCoinPopup('SHIFT LOCK ON');
+
+    // On desktop in active gameplay, request pointer lock for seamless mouse look
+    if (gameState === 'playing' && !isGamePaused && canvas && !isTouchDevice()) {
+      safeRequestPointerLock(canvas);
+    }
   } else {
     if (shiftLockBtn) shiftLockBtn.classList.remove('active');
     if (shiftLockVal) shiftLockVal.textContent = 'BEBAS';
     if (mobileShiftBtn) mobileShiftBtn.classList.remove('active');
     if (reticle) reticle.classList.add('hidden');
+
+    if (canvas && document.pointerLockElement === canvas) {
+      safeExitPointerLock();
+    }
   }
 }
 
-// Player Identity State (Single Source of Truth)
+// Pause and Exit State
+let isGamePaused = false;
+let pauseStartTime = 0;
+let totalPausedDuration = 0;
+let isExitConfirmOpen = false;
+
+// ===== SOLO MODE PLAYER IDENTITY & GREETINGS =====
+const ENTRY_GREETINGS = [
+  'ready to explore the island?',
+  'your next adventure starts here.',
+  'the island is waiting for you.',
+  'let’s collect some treasure.',
+  'the tropical breeze welcomes you.',
+  'sunshine, secrets, and gold await.',
+  'time to uncover ancient ruins.'
+];
+
+const TROPICAL_NAME_PREFIXES = [
+  'Mango', 'Tropic', 'Coco', 'Sunny', 'Island', 'Palm', 'Coral', 'Breeze',
+  'Lagoon', 'Wave', 'Kiwi', 'Amber', 'Jungle', 'Tide', 'Banana', 'Papaya',
+  'Ocean', 'Bamboo', 'Sunset', 'Pearl', 'Safari', 'Reef', 'Dolphin', 'Toucan'
+];
+
+const TROPICAL_NAME_SUFFIXES = [
+  'Rider', 'Fox', 'Runner', 'Explorer', 'Voyager', 'Seeker', 'Diver', 'Hunter',
+  'Ranger', 'Surfer', 'Scout', 'Falcon', 'Nomad', 'Tracker', 'Sailor', 'Pioneer',
+  'Captain', 'Adventurer', 'Rover', 'Wanderer'
+];
+
+export function generateRandomTropicalName() {
+  const prefix = TROPICAL_NAME_PREFIXES[Math.floor(Math.random() * TROPICAL_NAME_PREFIXES.length)];
+  const suffix = TROPICAL_NAME_SUFFIXES[Math.floor(Math.random() * TROPICAL_NAME_SUFFIXES.length)];
+  const num = Math.floor(Math.random() * 90 + 10);
+  return `${prefix}${suffix}${Math.random() > 0.4 ? num : ''}`;
+}
+
+export function validatePlayerName(raw) {
+  if (!raw || typeof raw !== 'string') {
+    return { valid: false, error: 'Nama tidak boleh kosong.' };
+  }
+  const trimmed = raw.trim();
+  if (trimmed.length < 1 || trimmed.length > 20) {
+    return { valid: false, error: 'Panjang nama harus 1-20 karakter.' };
+  }
+  if (!/^[a-zA-Z0-9 _-]+$/.test(trimmed)) {
+    return { valid: false, error: 'Gunakan hanya huruf, angka, spasi, dash, atau underscore.' };
+  }
+  return { valid: true, name: trimmed };
+}
+
 let currentPlayerName = 'Petualang';
 let characterNameTag = null;
 
 function syncPlayerNameUI(name) {
-  const mpInput = document.getElementById('mp-player-name');
-  const mpPreview = document.getElementById('mp-name-preview-text');
+  const soloInput = document.getElementById('solo-player-name');
+  const displayText = document.getElementById('player-name-display-text');
   const hudName = document.getElementById('hud-player-name');
-
-  if (mpInput && mpInput.value !== name) mpInput.value = name;
-  if (mpPreview) mpPreview.textContent = name;
+  if (soloInput && soloInput.value !== name) soloInput.value = name;
+  if (displayText) displayText.textContent = name;
   if (hudName) hudName.textContent = name;
 }
 
 function getActivePlayerName() {
-  const mpInput = document.getElementById('mp-player-name');
+  const soloInput = document.getElementById('solo-player-name');
   let raw = '';
-  if (mpInput && mpInput.value && mpInput.value.trim().length > 0) {
-    raw = mpInput.value;
+  if (soloInput && soloInput.value && soloInput.value.trim().length > 0) {
+    raw = soloInput.value;
   } else {
     try {
       const saved = localStorage.getItem('coin_rush_player_name');
@@ -205,14 +305,153 @@ function getActivePlayerName() {
     } catch (e) {}
   }
 
-  let trimmed = (raw || '').trim();
-  if (trimmed.length < 3) {
-    trimmed = 'Petualang';
+  const check = validatePlayerName(raw);
+  if (check.valid) {
+    currentPlayerName = check.name;
+  } else if (!currentPlayerName || currentPlayerName === 'Petualang') {
+    currentPlayerName = generateRandomTropicalName();
+    try {
+      localStorage.setItem('coin_rush_player_name', currentPlayerName);
+    } catch (e) {}
   }
-  const finalName = trimmed.substring(0, 16);
-  currentPlayerName = finalName;
-  syncPlayerNameUI(finalName);
-  return finalName;
+  syncPlayerNameUI(currentPlayerName);
+  return currentPlayerName;
+}
+
+function initPlayerIdentity() {
+  // 1. Display Random Greeting on Main Menu
+  const greetingEl = document.getElementById('menu-greeting');
+  if (greetingEl) {
+    const greeting = ENTRY_GREETINGS[Math.floor(Math.random() * ENTRY_GREETINGS.length)];
+    greetingEl.textContent = `“${greeting}”`;
+  }
+
+  // 2. Load or generate player name
+  let savedName = '';
+  try {
+    savedName = localStorage.getItem('coin_rush_player_name') || '';
+  } catch (e) {}
+
+  const check = validatePlayerName(savedName);
+  if (check.valid) {
+    currentPlayerName = check.name;
+  } else {
+    currentPlayerName = generateRandomTropicalName();
+    try {
+      localStorage.setItem('coin_rush_player_name', currentPlayerName);
+    } catch (e) {}
+  }
+
+  const soloInput = document.getElementById('solo-player-name');
+  const feedbackMsg = document.getElementById('name-feedback-msg');
+  const btnRandom = document.getElementById('btn-random-name');
+  const btnSave = document.getElementById('btn-save-name');
+  const btnEdit = document.getElementById('btn-edit-name');
+  const btnCancel = document.getElementById('btn-cancel-edit-name');
+  const displayRow = document.getElementById('player-name-display-row');
+  const editRow = document.getElementById('player-name-edit-row');
+
+  if (soloInput) {
+    soloInput.value = currentPlayerName;
+  }
+
+  let feedbackTimer = null;
+  function showNameFeedback(msg, isError = false) {
+    if (!feedbackMsg) return;
+    if (feedbackTimer) clearTimeout(feedbackTimer);
+    feedbackMsg.textContent = msg;
+    feedbackMsg.className = `name-feedback-mini ${isError ? 'error' : ''}`;
+    feedbackMsg.classList.remove('hidden');
+    feedbackTimer = setTimeout(() => {
+      if (feedbackMsg) feedbackMsg.classList.add('hidden');
+    }, 2400);
+  }
+
+  function switchToDisplayMode() {
+    if (editRow) editRow.classList.add('hidden');
+    if (displayRow) displayRow.classList.remove('hidden');
+  }
+
+  function switchToEditMode() {
+    if (displayRow) displayRow.classList.add('hidden');
+    if (editRow) editRow.classList.remove('hidden');
+    if (soloInput) {
+      soloInput.value = currentPlayerName;
+      soloInput.focus();
+      soloInput.select();
+    }
+  }
+
+  // Toggle edit mode
+  if (btnEdit) {
+    btnEdit.addEventListener('click', (e) => {
+      e.preventDefault();
+      switchToEditMode();
+    });
+  }
+
+  if (btnCancel) {
+    btnCancel.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (soloInput) soloInput.value = currentPlayerName;
+      switchToDisplayMode();
+    });
+  }
+
+  // Randomize button
+  if (btnRandom) {
+    btnRandom.addEventListener('click', (e) => {
+      e.preventDefault();
+      const newName = generateRandomTropicalName();
+      currentPlayerName = newName;
+      if (soloInput) soloInput.value = newName;
+      try {
+        localStorage.setItem('coin_rush_player_name', newName);
+      } catch (err) {}
+      syncPlayerNameUI(newName);
+      updateLocalPlayerNameTag(newName);
+      showNameFeedback('SAVED', false);
+    });
+  }
+
+  // Save button
+  if (btnSave) {
+    btnSave.addEventListener('click', (e) => {
+      e.preventDefault();
+      const raw = soloInput ? soloInput.value : '';
+      const result = validatePlayerName(raw);
+      if (!result.valid) {
+        showNameFeedback(result.error, true);
+        return;
+      }
+      currentPlayerName = result.name;
+      if (soloInput) soloInput.value = result.name;
+      try {
+        localStorage.setItem('coin_rush_player_name', result.name);
+      } catch (err) {}
+      syncPlayerNameUI(result.name);
+      updateLocalPlayerNameTag(result.name);
+      switchToDisplayMode();
+      showNameFeedback('SAVED', false);
+    });
+  }
+
+  // Enter key support inside solo input
+  if (soloInput) {
+    soloInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        btnSave?.click();
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        btnCancel?.click();
+      }
+    });
+  }
+
+  // Default mode: text view
+  switchToDisplayMode();
+  syncPlayerNameUI(currentPlayerName);
 }
 
 function updateLocalPlayerNameTag(name) {
@@ -484,6 +723,7 @@ export function init() {
   // Events
   setupInput();
   setupUI();
+  populateMiniLeaderboard();
   window.addEventListener('resize', onResize);
 
   // Start render loop
@@ -636,12 +876,30 @@ function renderMissionsHUD() {
 
 // ===== INPUT =====
 function setupInput() {
+  // Prevent context menu (right click) on game page while keeping inputs accessible
+  window.addEventListener('contextmenu', (e) => {
+    if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) {
+      return;
+    }
+    e.preventDefault();
+  });
+
   window.addEventListener('keydown', (e) => {
     if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) {
       return;
     }
-    if (e.key === 'Shift') {
+    if (e.key === 'Escape') {
       if (gameState === 'playing') {
+        if (isExitConfirmOpen) {
+          closeExitConfirmModal();
+        } else {
+          togglePause();
+        }
+      }
+      return;
+    }
+    if (e.key === 'Shift') {
+      if (gameState === 'playing' && !isGamePaused) {
         toggleShiftLock();
       }
       return;
@@ -652,11 +910,11 @@ function setupInput() {
     }
     const action = mapKeyToAction(e.key, e.code);
     if (action === 'interact') {
-      if (gameState === 'playing') {
+      if (gameState === 'playing' && !isGamePaused) {
         tryInteractChest();
       }
     } else if (action === 'jump') {
-      if (gameState === 'playing') {
+      if (gameState === 'playing' && !isGamePaused) {
         tryJump();
       }
     } else if (action) {
@@ -688,13 +946,24 @@ function setupInput() {
     };
 
     const onPointerMove = (e) => {
-      if (!isDraggingCamera) return;
-      const dx = e.clientX - lastPointerX;
-      const dy = e.clientY - lastPointerY;
-      lastPointerX = e.clientX;
-      lastPointerY = e.clientY;
+      const isPointerLocked = document.pointerLockElement === canvas;
+      if (!isDraggingCamera && !isPointerLocked) return;
 
-      const sensitivity = 0.0055;
+      let dx = 0;
+      let dy = 0;
+      if (isPointerLocked) {
+        dx = e.movementX || 0;
+        dy = e.movementY || 0;
+        if (Math.abs(dx) > 120) dx = Math.sign(dx) * 120;
+        if (Math.abs(dy) > 120) dy = Math.sign(dy) * 120;
+      } else {
+        dx = e.clientX - lastPointerX;
+        dy = e.clientY - lastPointerY;
+        lastPointerX = e.clientX;
+        lastPointerY = e.clientY;
+      }
+
+      const sensitivity = isPointerLocked ? 0.0032 : 0.0055;
       cameraYaw -= dx * sensitivity;
       cameraPitch += dy * sensitivity;
 
@@ -714,6 +983,13 @@ function setupInput() {
     window.addEventListener('pointermove', onPointerMove);
     window.addEventListener('pointerup', onPointerUp);
     window.addEventListener('pointercancel', onPointerUp);
+
+    // Pointer lock state listener
+    document.addEventListener('pointerlockchange', () => {
+      if (document.pointerLockElement !== canvas && isShiftLockActive) {
+        // Pointer lock released
+      }
+    });
 
     // Mouse wheel zoom
     canvas.addEventListener('wheel', (e) => {
@@ -850,90 +1126,379 @@ function setupInput() {
   }, { passive: false });
 }
 
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function formatLeaderboardDate(iso) {
+  if (!iso) return '-';
+  try {
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return '-';
+    const now = new Date();
+    const diffMs = now - d;
+    const diffHours = diffMs / (1000 * 60 * 60);
+    if (diffHours < 1) return 'Baru saja';
+    if (diffHours < 24) return `${Math.max(1, Math.floor(diffHours))} jam lalu`;
+    const day = d.getDate();
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+    const month = months[d.getMonth()];
+    const year = d.getFullYear();
+    return `${day} ${month} ${year}`;
+  } catch (e) {
+    return '-';
+  }
+}
+
+function updateMiniLeaderboard(scores) {
+  for (let i = 1; i <= 3; i++) {
+    const item = scores && scores[i - 1];
+    const nameEl = document.getElementById(`mini-name-${i}`);
+    const scoreEl = document.getElementById(`mini-score-${i}`);
+    const cardEl = document.getElementById(`mini-card-${i}`);
+    if (nameEl) {
+      if (item && item.player_name) {
+        nameEl.textContent = item.player_name;
+        nameEl.style.opacity = '1';
+        nameEl.style.fontStyle = 'normal';
+      } else {
+        nameEl.textContent = i === 1 ? 'Menunggu Rekor...' : 'Posisi Terbuka';
+        nameEl.style.opacity = '0.55';
+        nameEl.style.fontStyle = 'italic';
+      }
+    }
+    if (scoreEl) {
+      if (item && typeof item.score !== 'undefined') {
+        scoreEl.textContent = String(item.score);
+        scoreEl.style.opacity = '1';
+      } else {
+        scoreEl.textContent = '—';
+        scoreEl.style.opacity = '0.45';
+      }
+    }
+    if (cardEl) {
+      cardEl.style.opacity = '0.7';
+      setTimeout(() => {
+        if (cardEl) cardEl.style.opacity = '1';
+      }, 50 * i);
+    }
+  }
+}
+
+async function populateMiniLeaderboard() {
+  if (supabaseLeaderboard.isConfigured()) {
+    try {
+      const res = await supabaseLeaderboard.fetchTopScores(3);
+      if (res && res.success && res.scores && res.scores.length > 0) {
+        updateMiniLeaderboard(res.scores);
+        return;
+      }
+    } catch (e) {}
+  }
+  // Local fallback
+  updateMiniLeaderboard([{ player_name: currentPlayerName || 'Petualang', score: highScore }]);
+}
+
+async function renderLeaderboard() {
+  const statusEl = document.getElementById('leaderboard-status');
+  const podiumEl = document.getElementById('leaderboard-top-podium');
+  const tableBody = document.getElementById('leaderboard-table-body');
+  if (!statusEl || !tableBody) return;
+
+  if (!supabaseLeaderboard.isConfigured()) {
+    statusEl.textContent = 'Penyimpanan Lokal Aktif (Supabase Belum Dikonfigurasi)';
+    if (podiumEl) podiumEl.innerHTML = '';
+    updateMiniLeaderboard([{ player_name: currentPlayerName || 'Petualang', score: highScore }]);
+    tableBody.innerHTML = `
+      <tr>
+        <td colspan="4" class="leaderboard-empty-state">
+          <p><strong>Rekor Lokal Perangkat Ini:</strong> <span style="color: #fbbf24; font-weight: 700;">${highScore} Poin</span></p>
+          <p style="margin-top: 6px; font-size: 0.82rem; opacity: 0.75;">Papan skor global tersinkronisasi dapat diaktifkan dengan menambahkan variabel <code>VITE_SUPABASE_URL</code> dan <code>VITE_SUPABASE_ANON_KEY</code> di Vercel / .env.</p>
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  statusEl.textContent = 'Mengambil data rekor pulau...';
+  if (podiumEl) podiumEl.innerHTML = '';
+  tableBody.innerHTML = '<tr><td colspan="4" style="padding: 24px; text-align: center; color: rgba(255,255,255,0.65);">Memuat peringkat petualang...</td></tr>';
+
+  const res = await supabaseLeaderboard.fetchTopScores(10);
+  if (!res.success) {
+    statusEl.textContent = 'Gagal memuat papan skor';
+    if (podiumEl) podiumEl.innerHTML = '';
+    tableBody.innerHTML = `
+      <tr>
+        <td colspan="4" class="leaderboard-error-state">
+          <p>Koneksi Supabase: ${escapeHtml(res.error || 'Terjadi kesalahan jaringan')}</p>
+          <button id="btn-retry-leaderboard-error" class="btn btn-retry" style="margin-top: 8px;">Coba Lagi</button>
+        </td>
+      </tr>
+    `;
+    document.getElementById('btn-retry-leaderboard-error')?.addEventListener('click', () => renderLeaderboard());
+    return;
+  }
+
+  const scores = res.scores || [];
+  updateMiniLeaderboard(scores);
+  statusEl.textContent = '10 Petualang Terhebat Global';
+
+  if (scores.length === 0) {
+    if (podiumEl) podiumEl.innerHTML = '';
+    tableBody.innerHTML = '<tr><td colspan="4" class="leaderboard-empty-state">Belum ada rekor petualang tercatat. Jadilah yang pertama!</td></tr>';
+    return;
+  }
+
+  // Render Top 3 Podium
+  if (podiumEl) {
+    const top1 = scores[0];
+    const top2 = scores[1];
+    const top3 = scores[2];
+
+    podiumEl.innerHTML = `
+      <!-- Rank 2 (Silver) -->
+      <div class="podium-card podium-rank-2">
+        <div class="podium-badge-icon">#2</div>
+        <div class="podium-player-name" title="${top2 ? escapeHtml(top2.player_name) : '-'}">${top2 ? escapeHtml(top2.player_name) : '-'}</div>
+        <div class="podium-score-val">${top2 ? top2.score : '-'} <span style="font-size:0.75rem;font-weight:600;opacity:0.8;">Poin</span></div>
+        <div class="podium-date">${top2 ? formatLeaderboardDate(top2.created_at) : ''}</div>
+      </div>
+
+      <!-- Rank 1 (Gold) -->
+      <div class="podium-card podium-rank-1">
+        <div class="podium-badge-icon">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+            <path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z"/>
+          </svg>
+        </div>
+        <div class="podium-player-name" title="${top1 ? escapeHtml(top1.player_name) : '-'}">${top1 ? escapeHtml(top1.player_name) : '-'}</div>
+        <div class="podium-score-val">${top1 ? top1.score : '-'} <span style="font-size:0.8rem;font-weight:700;">Poin</span></div>
+        <div class="podium-date">${top1 ? formatLeaderboardDate(top1.created_at) : ''}</div>
+      </div>
+
+      <!-- Rank 3 (Bronze) -->
+      <div class="podium-card podium-rank-3">
+        <div class="podium-badge-icon">#3</div>
+        <div class="podium-player-name" title="${top3 ? escapeHtml(top3.player_name) : '-'}">${top3 ? escapeHtml(top3.player_name) : '-'}</div>
+        <div class="podium-score-val">${top3 ? top3.score : '-'} <span style="font-size:0.75rem;font-weight:600;opacity:0.8;">Poin</span></div>
+        <div class="podium-date">${top3 ? formatLeaderboardDate(top3.created_at) : ''}</div>
+      </div>
+    `;
+  }
+
+  // Render Table Rows
+  tableBody.innerHTML = scores.map((item, idx) => {
+    const isCurrentUser = (item.player_name && item.player_name === currentPlayerName);
+    const rankClass = idx === 0 ? 'rank-1' : idx === 1 ? 'rank-2' : idx === 2 ? 'rank-3' : '';
+    const dateFormatted = formatLeaderboardDate(item.created_at);
+    return `
+      <tr class="${isCurrentUser ? 'current-user' : ''}">
+        <td><span class="rank-badge ${rankClass}">${idx + 1}</span></td>
+        <td style="font-weight: 600;">${escapeHtml(item.player_name || 'Petualang')}${isCurrentUser ? ' <span style="font-size:0.72rem;color:#38bdf8;">(Anda)</span>' : ''}</td>
+        <td class="score-col">${item.score}</td>
+        <td class="date-col">${dateFormatted}</td>
+      </tr>
+    `;
+  }).join('');
+}
+
 // ===== UI SETUP =====
 function setupUI() {
-  document.getElementById('btn-play').addEventListener('click', () => {
-    isMultiplayerMatch = false;
-    // Solo starts immediately with 'Petualang' or retained name without form prompting
-    if (!currentPlayerName || currentPlayerName.trim().length < 3) {
-      currentPlayerName = 'Petualang';
+  // Initialize dedicated Solo Identity & Random Greeting
+  initPlayerIdentity();
+
+  // MULAI SOLO button with smooth start transition animation
+  const btnPlay = document.getElementById('btn-play');
+  if (btnPlay) {
+    btnPlay.addEventListener('click', () => {
+      btnPlay.style.transform = 'scale(0.96)';
+      setTimeout(() => { if (btnPlay) btnPlay.style.transform = ''; }, 120);
+
+      const rawInput = document.getElementById('solo-player-name')?.value || '';
+      const check = validatePlayerName(rawInput);
+      if (check.valid) {
+        currentPlayerName = check.name;
+      } else if (!currentPlayerName || currentPlayerName === 'Petualang') {
+        currentPlayerName = generateRandomTropicalName();
+      }
+      try {
+        localStorage.setItem('coin_rush_player_name', currentPlayerName);
+      } catch (e) {}
+
+      syncPlayerNameUI(currentPlayerName);
+      updateLocalPlayerNameTag(currentPlayerName);
+
+      startSoloAdventureWithAnimation();
+    });
+  }
+
+  // Pause & Exit Modal Handlers
+  const btnPause = document.getElementById('btn-pause-game');
+  if (btnPause) {
+    btnPause.addEventListener('click', (e) => {
+      e.stopPropagation();
+      togglePause();
+    });
+  }
+
+  const btnResume = document.getElementById('btn-resume-game');
+  if (btnResume) {
+    btnResume.addEventListener('click', () => {
+      resumeGame();
+    });
+  }
+
+  const btnRestart = document.getElementById('btn-restart-game');
+  if (btnRestart) {
+    btnRestart.addEventListener('click', () => {
+      restartGame();
+    });
+  }
+
+  const btnExit = document.getElementById('btn-exit-game');
+  if (btnExit) {
+    btnExit.addEventListener('click', () => {
+      openExitConfirmModal();
+    });
+  }
+  const btnExitToMenu = document.getElementById('btn-exit-to-menu');
+  if (btnExitToMenu && btnExitToMenu !== btnExit) {
+    btnExitToMenu.addEventListener('click', () => {
+      openExitConfirmModal();
+    });
+  }
+
+  const btnConfirmExit = document.getElementById('btn-confirm-exit');
+  if (btnConfirmExit) {
+    btnConfirmExit.addEventListener('click', () => {
+      exitToMenu();
+    });
+  }
+
+  const btnCancelExit = document.getElementById('btn-cancel-exit');
+  if (btnCancelExit) {
+    btnCancelExit.addEventListener('click', () => {
+      closeExitConfirmModal();
+    });
+  }
+
+  // How to Play overlay
+  document.getElementById('btn-how-to-play')?.addEventListener('click', () => {
+    document.getElementById('main-menu')?.classList.add('hidden');
+    document.getElementById('how-to-play')?.classList.remove('hidden');
+  });
+
+  document.getElementById('btn-back-how')?.addEventListener('click', () => {
+    document.getElementById('how-to-play')?.classList.add('hidden');
+    document.getElementById('main-menu')?.classList.remove('hidden');
+  });
+
+  // Audio Volume Sliders & Settings Controls
+  const sliderMaster = document.getElementById('slider-master-volume');
+  const valMaster = document.getElementById('val-master-volume');
+  const sliderMusic = document.getElementById('slider-music-volume');
+  const valMusic = document.getElementById('val-music-volume');
+  const sliderSfx = document.getElementById('slider-sfx-volume');
+  const valSfx = document.getElementById('val-sfx-volume');
+  const btnMute = document.getElementById('btn-mute-toggle');
+  const btnResetAudio = document.getElementById('btn-reset-audio');
+
+  function syncAudioUI() {
+    const m = Math.round(getMasterVolume() * 100);
+    const mu = Math.round(getMusicVolume() * 100);
+    const s = Math.round(getSfxVolume() * 100);
+    const muted = isMuted();
+
+    if (sliderMaster) sliderMaster.value = m;
+    if (valMaster) valMaster.textContent = `${m}%`;
+    if (sliderMusic) sliderMusic.value = mu;
+    if (valMusic) valMusic.textContent = `${mu}%`;
+    if (sliderSfx) sliderSfx.value = s;
+    if (valSfx) valSfx.textContent = `${s}%`;
+    if (btnMute) {
+      btnMute.textContent = muted ? 'ON' : 'OFF';
+      if (muted) btnMute.classList.add('active');
+      else btnMute.classList.remove('active');
     }
-    syncPlayerNameUI(currentPlayerName);
-    updateLocalPlayerNameTag(currentPlayerName);
-    startGame();
+  }
+
+  if (sliderMaster) {
+    sliderMaster.addEventListener('input', (e) => {
+      resumeAudio();
+      const val = parseInt(e.target.value, 10);
+      setMasterVolume(val / 100);
+      if (valMaster) valMaster.textContent = `${val}%`;
+    });
+  }
+
+  if (sliderMusic) {
+    sliderMusic.addEventListener('input', (e) => {
+      resumeAudio();
+      const val = parseInt(e.target.value, 10);
+      setMusicVolume(val / 100);
+      if (valMusic) valMusic.textContent = `${val}%`;
+    });
+  }
+
+  if (sliderSfx) {
+    sliderSfx.addEventListener('input', (e) => {
+      resumeAudio();
+      const val = parseInt(e.target.value, 10);
+      setSfxVolume(val / 100);
+      if (valSfx) valSfx.textContent = `${val}%`;
+    });
+  }
+
+  if (btnMute) {
+    btnMute.addEventListener('click', () => {
+      resumeAudio();
+      const active = toggleMute();
+      btnMute.textContent = active ? 'ON' : 'OFF';
+      if (active) btnMute.classList.add('active');
+      else btnMute.classList.remove('active');
+    });
+  }
+
+  if (btnResetAudio) {
+    btnResetAudio.addEventListener('click', () => {
+      resetAudioSettings();
+      syncAudioUI();
+    });
+  }
+
+  // Settings overlay
+  document.getElementById('btn-settings')?.addEventListener('click', () => {
+    document.getElementById('main-menu')?.classList.add('hidden');
+    document.getElementById('settings-menu')?.classList.remove('hidden');
+    syncAudioUI();
   });
 
-  document.getElementById('btn-how-to-play').addEventListener('click', () => {
-    document.getElementById('main-menu').classList.add('hidden');
-    document.getElementById('how-to-play').classList.remove('hidden');
+  document.getElementById('btn-back-settings')?.addEventListener('click', () => {
+    document.getElementById('settings-menu')?.classList.add('hidden');
+    document.getElementById('main-menu')?.classList.remove('hidden');
   });
 
-  document.getElementById('btn-back-how').addEventListener('click', () => {
-    document.getElementById('how-to-play').classList.add('hidden');
-    document.getElementById('main-menu').classList.remove('hidden');
+  // Mini leaderboard open button
+  document.getElementById('btn-mini-lb-open')?.addEventListener('click', () => {
+    document.getElementById('btn-leaderboard')?.click();
   });
 
-  document.getElementById('btn-settings').addEventListener('click', () => {
-    document.getElementById('main-menu').classList.add('hidden');
-    document.getElementById('settings-menu').classList.remove('hidden');
-  });
-
-  document.getElementById('btn-back-settings').addEventListener('click', () => {
-    document.getElementById('settings-menu').classList.add('hidden');
-    document.getElementById('main-menu').classList.remove('hidden');
-  });
-
-  // Online Leaderboard modal handlers
+  // Leaderboard overlay
   const btnLeaderboard = document.getElementById('btn-leaderboard');
   const modalLeaderboard = document.getElementById('leaderboard-menu');
   const btnBackLeaderboard = document.getElementById('btn-back-leaderboard');
   const btnRefreshLeaderboard = document.getElementById('btn-refresh-leaderboard');
-  const listLeaderboard = document.getElementById('leaderboard-list');
-  const statusLeaderboard = document.getElementById('leaderboard-status');
-
-  async function renderLeaderboard() {
-    if (!statusLeaderboard || !listLeaderboard) return;
-    if (!supabaseLeaderboard.isConfigured()) {
-      statusLeaderboard.textContent = 'Penyimpanan Lokal Aktif (Supabase Belum Dikonfigurasi)';
-      listLeaderboard.innerHTML = `
-        <div style="padding: 14px; text-align: center; color: var(--text-secondary); font-size: 13px; line-height: 1.6;">
-          <p><strong>Rekor Lokal Perangkat Ini:</strong> <span style="color: var(--accent-gold); font-weight: 700;">${highScore} Poin</span></p>
-          <p style="margin-top: 8px;">Papan skor global tersinkronisasi dapat diaktifkan dengan menambahkan variabel <code>VITE_SUPABASE_URL</code> dan <code>VITE_SUPABASE_ANON_KEY</code> di lingkungan Vercel / .env.</p>
-        </div>
-      `;
-      return;
-    }
-
-    statusLeaderboard.textContent = 'Mengambil data rekor global...';
-    listLeaderboard.innerHTML = '<div style="padding: 16px; text-align: center; color: var(--text-secondary);">Memuat...</div>';
-
-    const res = await supabaseLeaderboard.fetchTopScores(10);
-    if (!res.success) {
-      statusLeaderboard.textContent = 'Gagal memuat data';
-      listLeaderboard.innerHTML = `<div style="padding: 14px; text-align: center; color: #ef4444; font-size: 13px;">Koneksi Supabase: ${res.error || 'Terjadi kesalahan'}</div>`;
-      return;
-    }
-
-    statusLeaderboard.textContent = '10 Petualang Terhebat Global';
-    if (!res.scores || res.scores.length === 0) {
-      listLeaderboard.innerHTML = '<div style="padding: 16px; text-align: center; color: var(--text-secondary);">Belum ada rekor tercatat. Jadilah yang pertama!</div>';
-      return;
-    }
-
-    listLeaderboard.innerHTML = res.scores.map((item, idx) => `
-      <div class="mp-rank-row ${idx === 0 ? 'winner' : ''}">
-        <div class="mp-rank-left">
-          <span class="mp-rank-pos">${idx === 0 ? '<svg class="icon-inline" viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z"/></svg> 1' : (idx + 1)}</span>
-          <span style="font-weight: 600;">${item.player_name || 'Petualang'}</span>
-        </div>
-        <div class="mp-rank-right" style="font-weight: 700; color: var(--accent-gold);">${item.score} Poin</div>
-      </div>
-    `).join('');
-  }
 
   if (btnLeaderboard) {
     btnLeaderboard.addEventListener('click', () => {
-      document.getElementById('main-menu').classList.add('hidden');
+      document.getElementById('main-menu')?.classList.add('hidden');
       if (modalLeaderboard) modalLeaderboard.classList.remove('hidden');
       renderLeaderboard();
     });
@@ -942,7 +1507,7 @@ function setupUI() {
   if (btnBackLeaderboard) {
     btnBackLeaderboard.addEventListener('click', () => {
       if (modalLeaderboard) modalLeaderboard.classList.add('hidden');
-      document.getElementById('main-menu').classList.remove('hidden');
+      document.getElementById('main-menu')?.classList.remove('hidden');
     });
   }
 
@@ -952,37 +1517,113 @@ function setupUI() {
     });
   }
 
-  document.getElementById('sfx-toggle').addEventListener('click', (e) => {
+  // Audio legacy toggles (for backward compatibility)
+  document.getElementById('sfx-toggle')?.addEventListener('click', (e) => {
     const active = e.target.classList.toggle('active');
     e.target.textContent = active ? 'ON' : 'OFF';
     setSfxEnabled(active);
   });
 
-  document.getElementById('music-toggle').addEventListener('click', (e) => {
+  document.getElementById('music-toggle')?.addEventListener('click', (e) => {
     const active = e.target.classList.toggle('active');
     e.target.textContent = active ? 'ON' : 'OFF';
     setMusicEnabled(active);
-    if (active && gameState === 'playing') startMusic();
+    if (active && gameState === 'playing' && !isGamePaused) startMusic();
   });
 
-  document.getElementById('btn-play-again').addEventListener('click', () => {
-    document.getElementById('result-screen').classList.add('hidden');
-    if (isMultiplayerMatch) {
-      showMainMenu();
-    } else {
-      startGame();
-    }
+  // 15-Second Cinematic Intro Skip Button
+  const btnSkipIntro = document.getElementById('btn-skip-intro');
+  if (btnSkipIntro) {
+    btnSkipIntro.addEventListener('click', (e) => {
+      e.stopPropagation();
+      skipCinematicIntro();
+    });
+  }
+
+  // Briefing Skip & Don't Show Again Handler
+  const btnSkipBriefing = document.getElementById('btn-skip-briefing');
+  const briefingDontShow = document.getElementById('briefing-dont-show');
+  const briefingModal = document.getElementById('briefing-overlay');
+  const startBanner = document.getElementById('adventure-start-banner');
+
+  if (btnSkipBriefing) {
+    btnSkipBriefing.addEventListener('click', () => {
+      if (briefingDontShow && briefingDontShow.checked) {
+        try {
+          localStorage.setItem('coin_rush_skip_briefing', 'true');
+        } catch (e) {}
+      }
+
+      if (briefingModal) briefingModal.classList.add('hidden');
+
+      const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (prefersReducedMotion) {
+        cameraDistance = 6.8;
+        cameraTargetDistance = 6.8;
+        cameraPitch = 0.32;
+        cameraYaw = Math.PI;
+        beginGameplay();
+        return;
+      }
+
+      if (startBanner) startBanner.classList.remove('hidden');
+      gameState = 'transitioning';
+      playChestSound();
+
+      const animDuration = 1100;
+      const startAnimTime = performance.now();
+
+      function animateBriefingToGame(now) {
+        const elapsed = now - startAnimTime;
+        const progress = Math.min(1.0, elapsed / animDuration);
+        const ease = 1 - Math.pow(1 - progress, 3);
+        cameraDistance = 14.0 - (14.0 - 6.8) * ease;
+        cameraPitch = 0.42 - (0.42 - 0.32) * ease;
+        cameraTargetDistance = 6.8;
+
+        if (progress < 1.0 && gameState === 'transitioning') {
+          requestAnimationFrame(animateBriefingToGame);
+        } else if (gameState === 'transitioning') {
+          if (startBanner) startBanner.classList.add('hidden');
+          cameraDistance = 6.8;
+          cameraPitch = 0.32;
+          cameraYaw = Math.PI;
+          beginGameplay();
+        }
+      }
+      requestAnimationFrame(animateBriefingToGame);
+    });
+  }
+
+  // Prevent pause overlay clicks from propagating to canvas
+  const pauseOverlay = document.getElementById('pause-overlay');
+  if (pauseOverlay) {
+    pauseOverlay.addEventListener('pointerdown', (e) => e.stopPropagation());
+    pauseOverlay.addEventListener('click', (e) => e.stopPropagation());
+  }
+
+  // Result screen buttons
+  document.getElementById('btn-play-again')?.addEventListener('click', () => {
+    document.getElementById('result-screen')?.classList.add('hidden');
+    restartGame();
   });
 
-  document.getElementById('btn-main-menu').addEventListener('click', () => {
-    document.getElementById('result-screen').classList.add('hidden');
+  const handleReturnToMenu = () => {
+    document.getElementById('result-screen')?.classList.add('hidden');
     showMainMenu();
+  };
+  document.getElementById('btn-main-menu')?.addEventListener('click', handleReturnToMenu);
+  document.getElementById('btn-result-menu')?.addEventListener('click', handleReturnToMenu);
+
+  document.getElementById('btn-retry-submit')?.addEventListener('click', () => {
+    submitSoloScore(score);
   });
 
   // Shift Lock button bindings (HUD and Mobile)
   const btnShiftLock = document.getElementById('btn-shift-lock');
   if (btnShiftLock) {
-    btnShiftLock.addEventListener('click', () => {
+    btnShiftLock.addEventListener('click', (e) => {
+      e.stopPropagation();
       toggleShiftLock();
     });
   }
@@ -992,225 +1633,6 @@ function setupUI() {
     mobileShiftLock.addEventListener('click', (e) => {
       e.stopPropagation();
       toggleShiftLock();
-    });
-  }
-
-  // Multiplayer UI bindings
-  const btnMultiplayer = document.getElementById('btn-multiplayer');
-  if (btnMultiplayer) {
-    btnMultiplayer.addEventListener('click', () => {
-      document.getElementById('main-menu').classList.add('hidden');
-      document.getElementById('multiplayer-menu').classList.remove('hidden');
-      document.getElementById('mp-entry-view').classList.remove('hidden');
-      document.getElementById('mp-lobby-view').classList.add('hidden');
-      const errEl = document.getElementById('mp-error-msg');
-      if (errEl) errEl.classList.add('hidden');
-
-      const mpInput = document.getElementById('mp-player-name');
-      let savedName = '';
-      try {
-        savedName = localStorage.getItem('coin_rush_player_name') || '';
-      } catch (e) {}
-      if (mpInput) {
-        mpInput.value = savedName || '';
-        onNameInputChange(mpInput.value);
-        setTimeout(() => mpInput.focus(), 60);
-      }
-      updateServerBadge();
-    });
-  }
-
-  const btnBackMp = document.getElementById('btn-back-mp');
-  if (btnBackMp) {
-    btnBackMp.addEventListener('click', () => {
-      if (multiplayerManager) multiplayerManager.leaveRoom();
-      document.getElementById('multiplayer-menu').classList.add('hidden');
-      document.getElementById('main-menu').classList.remove('hidden');
-      getActivePlayerName();
-    });
-  }
-
-  // Real-time name input validation & synchronized preview badge in Multiplayer Modal
-  const mpNameInput = document.getElementById('mp-player-name');
-
-  const onNameInputChange = (val) => {
-    const trimmed = (val || '').trim();
-    const effectiveName = (trimmed.length > 0 ? trimmed : 'Petualang').substring(0, 16);
-    syncPlayerNameUI(effectiveName);
-    const errEl = document.getElementById('mp-error-msg');
-    if (errEl) errEl.classList.add('hidden');
-  };
-
-  if (mpNameInput) {
-    mpNameInput.addEventListener('input', () => onNameInputChange(mpNameInput.value));
-    mpNameInput.addEventListener('change', () => onNameInputChange(mpNameInput.value));
-  }
-
-  // Load and apply initial active player name
-  const currentName = getActivePlayerName();
-  updateLocalPlayerNameTag(currentName);
-
-  function getValidatedPlayerName() {
-    const mpInput = document.getElementById('mp-player-name');
-    const rawVal = mpInput ? mpInput.value : '';
-    const trimmed = (rawVal || '').trim();
-    if (!trimmed || trimmed.length < 3) {
-      showMpError('Nama pemain minimal 3 karakter!');
-      if (mpInput) mpInput.focus();
-      return null;
-    }
-    if (trimmed.length > 16) {
-      showMpError('Nama pemain maksimal 16 karakter!');
-      if (mpInput) mpInput.focus();
-      return null;
-    }
-    currentPlayerName = trimmed;
-    try {
-      localStorage.setItem('coin_rush_player_name', trimmed);
-    } catch (e) {}
-    syncPlayerNameUI(trimmed);
-    updateLocalPlayerNameTag(trimmed);
-    return trimmed;
-  }
-
-  const btnMpCreate = document.getElementById('btn-mp-create');
-  if (btnMpCreate) {
-    btnMpCreate.addEventListener('click', async () => {
-      const name = getValidatedPlayerName();
-      if (!name) return;
-      try {
-        await multiplayerManager.createRoom(name);
-      } catch (err) {
-        showMpError(err?.message || 'Gagal terhubung ke server multiplayer. Pastikan server aktif di port 3001.');
-      }
-    });
-  }
-
-  const btnMpJoin = document.getElementById('btn-mp-join');
-  if (btnMpJoin) {
-    btnMpJoin.addEventListener('click', async () => {
-      const name = getValidatedPlayerName();
-      if (!name) return;
-      const codeInput = document.getElementById('mp-room-input');
-      const code = codeInput ? codeInput.value.trim() : '';
-      if (!code) {
-        showMpError('Silakan masukkan kode room 5 karakter!');
-        return;
-      }
-      try {
-        await multiplayerManager.joinRoom(code, name);
-      } catch (err) {
-        showMpError(err?.message || 'Gagal terhubung ke server multiplayer.');
-      }
-    });
-  }
-
-  const btnMpStart = document.getElementById('btn-mp-start');
-  if (btnMpStart) {
-    btnMpStart.addEventListener('click', () => {
-      if (multiplayerManager && multiplayerManager.isHost) {
-        multiplayerManager.startMatch();
-      }
-    });
-  }
-
-  const btnMpLeave = document.getElementById('btn-mp-leave');
-  if (btnMpLeave) {
-    btnMpLeave.addEventListener('click', () => {
-      if (multiplayerManager) {
-        multiplayerManager.leaveRoom();
-        document.getElementById('mp-lobby-view').classList.add('hidden');
-        document.getElementById('mp-entry-view').classList.remove('hidden');
-      }
-    });
-  }
-
-  const btnCopyCode = document.getElementById('btn-copy-code');
-  if (btnCopyCode) {
-    btnCopyCode.addEventListener('click', () => {
-      const code = document.getElementById('mp-lobby-code')?.textContent;
-      if (code) {
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-          navigator.clipboard.writeText(code);
-        }
-        showCoinPopup('KODE DISALIN!');
-      }
-    });
-  }
-
-  // Custom WebSocket Server config handlers
-  const wsInput = document.getElementById('mp-custom-ws-input');
-  const btnSaveWs = document.getElementById('btn-save-custom-ws');
-  const serverBadge = document.getElementById('mp-current-server-badge');
-
-  function updateServerBadge() {
-    if (!serverBadge) return;
-    const currentUrl = multiplayerManager ? multiplayerManager.serverUrl : null;
-    if (currentUrl) {
-      serverBadge.textContent = currentUrl;
-      serverBadge.style.color = '#38bdf8';
-    } else {
-      serverBadge.textContent = 'Belum Dikonfigurasi';
-      serverBadge.style.color = '#f87171';
-    }
-    if (wsInput && currentUrl && !wsInput.value) {
-      wsInput.value = currentUrl;
-    }
-  }
-
-  updateServerBadge();
-
-  if (btnSaveWs) {
-    btnSaveWs.addEventListener('click', async () => {
-      const val = wsInput ? wsInput.value.trim() : '';
-      if (!val) {
-        multiplayerManager?.setCustomServerUrl('');
-        updateServerBadge();
-        showMpError('Pengaturan URL server dikosongkan (kembali ke default).');
-        return;
-      }
-      multiplayerManager?.setCustomServerUrl(val);
-      updateServerBadge();
-      showMpError('Menghubungkan ke ' + multiplayerManager.serverUrl + '...');
-      try {
-        await multiplayerManager.connect();
-        showMpError('Berhasil terhubung ke server: ' + multiplayerManager.serverUrl);
-      } catch (err) {
-        showMpError(err?.message || 'Gagal terhubung ke server');
-      }
-    });
-  }
-
-  // Pre-match briefing skip button
-  if (btnSkipBriefing) {
-    btnSkipBriefing.addEventListener('click', () => {
-      skipCinematicBriefing();
-    });
-  }
-
-  // Spectator mode buttons
-  if (btnSpectate) {
-    btnSpectate.addEventListener('click', () => {
-      enterSpectatorMode();
-    });
-  }
-
-  if (btnSpectatorExit) {
-    btnSpectatorExit.addEventListener('click', () => {
-      exitSpectatorMode();
-      showMainMenu();
-    });
-  }
-
-  if (btnSpectatePrev) {
-    btnSpectatePrev.addEventListener('click', () => {
-      cycleSpectatorTarget(-1);
-    });
-  }
-
-  if (btnSpectateNext) {
-    btnSpectateNext.addEventListener('click', () => {
-      cycleSpectatorTarget(1);
     });
   }
 }
@@ -1330,107 +1752,226 @@ function startCinematicBriefing(seed, duration = 15) {
   camera.lookAt(cameraLookTarget);
 }
 
-function skipCinematicBriefing() {
-  if (!briefingActive || briefingSkipped) return;
-  briefingSkipped = true;
+// ===== 15-SECOND CINEMATIC ISLAND INTRO SYSTEM =====
+let cinematicActive = false;
+let cinematicTimer = 0;
+const CINEMATIC_DURATION = 15.0;
+let cinematicCurrentScene = -1;
+let cinematicCameraStartPos = new THREE.Vector3();
+let cinematicCameraEndPos = new THREE.Vector3();
+let cinematicLookStart = new THREE.Vector3();
+let cinematicLookEnd = new THREE.Vector3();
+let isSkippingIntro = false;
+let lastCountdownAnnounced = -1;
 
-  if (briefingBanner) briefingBanner.classList.add('hidden');
-  if (briefingWaiting) briefingWaiting.classList.remove('hidden');
+function startCinematicIslandIntro() {
+  gameState = 'cinematic';
+  cinematicActive = true;
+  cinematicTimer = 0;
+  cinematicCurrentScene = -1;
+  isSkippingIntro = false;
 
-  if (multiplayerManager && isMultiplayerMatch) {
-    multiplayerManager.sendSkipBriefing();
+  // Immobilize character & zero inputs
+  isGamePaused = false;
+  keyboardInput.up = false;
+  keyboardInput.down = false;
+  keyboardInput.left = false;
+  keyboardInput.right = false;
+  mobileInput.up = false;
+  mobileInput.down = false;
+  mobileInput.left = false;
+  mobileInput.right = false;
+
+  // Hide gameplay HUD & overlays
+  document.getElementById('hud')?.classList.add('hidden');
+  document.getElementById('mobile-controls')?.classList.add('hidden');
+  if (minimapContainer) minimapContainer.classList.add('hidden');
+  if (hazardWarning) hazardWarning.classList.add('hidden');
+  if (damageOverlay) damageOverlay.classList.remove('active');
+
+  // Reveal cinematic overlay
+  const cineOverlay = document.getElementById('cinematic-overlay');
+  if (cineOverlay) cineOverlay.classList.remove('hidden');
+
+  const countOverlay = document.getElementById('countdown-overlay');
+  if (countOverlay) countOverlay.classList.add('hidden');
+
+  // Position camera for Scene 0 start
+  camera.position.set(0, 36, 75);
+  cameraLookTarget.set(0, 4, 18);
+  camera.lookAt(cameraLookTarget);
+
+  updateCinematicScene(0);
+}
+
+function skipCinematicIntro() {
+  if (isSkippingIntro || !cinematicActive) return;
+  isSkippingIntro = true;
+  cinematicActive = false;
+
+  const cineOverlay = document.getElementById('cinematic-overlay');
+  if (cineOverlay) cineOverlay.classList.add('hidden');
+
+  if (character) {
+    camera.position.set(character.position.x, character.position.y + 3.6, character.position.z + 6.8);
+    cameraLookTarget.set(character.position.x, character.position.y + 1.35, character.position.z);
+    camera.lookAt(cameraLookTarget);
+    cameraYaw = 0;
+    cameraPitch = 0.22;
+    cameraDistance = 6.8;
+    cameraTargetDistance = 6.8;
+  }
+
+  // Swift 1-second countdown transition
+  startMatchCountdown(1);
+}
+
+function updateCinematicScene(sceneIdx) {
+  cinematicCurrentScene = sceneIdx;
+  const titleEl = document.getElementById('cinematic-title');
+  const subEl = document.getElementById('cinematic-subtitle');
+  const markerEl = document.getElementById('cinematic-marker');
+  const markerText = document.getElementById('cinematic-marker-text');
+  const markerIcon = document.getElementById('cinematic-marker-icon');
+
+  playCinematicIntroChord(sceneIdx);
+
+  const charPos = character ? character.position : new THREE.Vector3(0, 1.2, 54);
+  const chestPos = (chests[0] && chests[0].mesh) ? chests[0].mesh.position.clone() : new THREE.Vector3(8, 2.5, 22);
+  const dangerPos = new THREE.Vector3(-6.5, 0.8, 6.8);
+  const potionPos = (potions[0] && potions[0].mesh) ? potions[0].mesh.position.clone() : new THREE.Vector3(2, 1.5, 52);
+
+  if (sceneIdx === 0) {
+    // Adegan 1 (0 - 3s): Welcome to the Island
+    if (titleEl) titleEl.textContent = 'WELCOME TO THE ISLAND';
+    if (subEl) subEl.textContent = 'A little island. A new adventure.';
+    if (markerEl) markerEl.classList.add('hidden');
+
+    cinematicCameraStartPos.set(0, 36, 75);
+    cinematicCameraEndPos.set(0, 20, 58);
+    cinematicLookStart.set(0, 4, 18);
+    cinematicLookEnd.set(0, 2, 28);
+  } else if (sceneIdx === 1) {
+    // Adegan 2 (3 - 6s): Treasure Zone
+    if (titleEl) titleEl.textContent = 'COLLECT THE TREASURE';
+    if (subEl) subEl.textContent = 'Collect coins and chase your high score.';
+    if (markerEl && markerText) {
+      markerEl.className = 'cinematic-marker marker-gold';
+      markerText.textContent = 'TREASURE ZONE';
+      if (markerIcon) {
+        markerIcon.innerHTML = `<svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6" fill="#0f172a"/><path d="M12 9v6M10 12h4" stroke="#fbbf24" stroke-width="1.5"/></svg>`;
+      }
+      markerEl.classList.remove('hidden');
+    }
+    playMarkerChime();
+
+    cinematicCameraStartPos.set(0, 20, 58);
+    cinematicCameraEndPos.copy(chestPos).add(new THREE.Vector3(6.5, 4.2, 9.0));
+    cinematicLookStart.set(0, 2, 28);
+    cinematicLookEnd.copy(chestPos).add(new THREE.Vector3(0, 0.6, 0));
+  } else if (sceneIdx === 2) {
+    // Adegan 3 (6 - 9s): Danger Zone
+    if (titleEl) titleEl.textContent = 'WATCH YOUR STEP';
+    if (subEl) subEl.textContent = 'Avoid danger and stay alive.';
+    if (markerEl && markerText) {
+      markerEl.className = 'cinematic-marker marker-danger';
+      markerText.textContent = 'DANGER ZONE';
+      if (markerIcon) {
+        markerIcon.innerHTML = `<svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13" stroke="#0f172a" stroke-width="2"/><circle cx="12" cy="17" r="1" fill="#0f172a"/></svg>`;
+      }
+      markerEl.classList.remove('hidden');
+    }
+    playMarkerChime();
+
+    cinematicCameraStartPos.copy(chestPos).add(new THREE.Vector3(6.5, 4.2, 9.0));
+    cinematicCameraEndPos.set(-3.2, 5.8, 15.5);
+    cinematicLookStart.copy(chestPos).add(new THREE.Vector3(0, 0.6, 0));
+    cinematicLookEnd.copy(dangerPos);
+  } else if (sceneIdx === 3) {
+    // Adegan 4 (9 - 12s): Health Station
+    if (titleEl) titleEl.textContent = 'STAY ALIVE, KEEP EXPLORING';
+    if (subEl) subEl.textContent = 'Find health potions and keep moving.';
+    if (markerEl && markerText) {
+      markerEl.className = 'cinematic-marker marker-health';
+      markerText.textContent = 'HEALTH STATION';
+      if (markerIcon) {
+        markerIcon.innerHTML = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 2h6m-3 0v4m-4 5v7a4 4 0 0 0 4 4 4 4 0 0 0 4-4v-7l-2-2V6h-4v3l-2 2z"/></svg>`;
+      }
+      markerEl.classList.remove('hidden');
+    }
+    playMarkerChime();
+
+    cinematicCameraStartPos.set(-3.2, 5.8, 15.5);
+    cinematicCameraEndPos.copy(potionPos).add(new THREE.Vector3(3.2, 2.5, -4.5));
+    cinematicLookStart.copy(dangerPos);
+    cinematicLookEnd.copy(potionPos).add(new THREE.Vector3(0, 0.4, 0));
+  } else if (sceneIdx === 4) {
+    // Adegan 5 (12 - 15s): Adventure Starts Now
+    if (titleEl) titleEl.textContent = 'YOUR ADVENTURE STARTS NOW';
+    if (subEl) subEl.textContent = 'Get ready to explore the island!';
+    if (markerEl) markerEl.classList.add('hidden');
+
+    const normalCamPos = charPos.clone().add(new THREE.Vector3(0, 3.6, 6.8));
+    const normalLook = charPos.clone().add(new THREE.Vector3(0, 1.35, 0));
+
+    cinematicCameraStartPos.copy(potionPos).add(new THREE.Vector3(3.2, 2.5, -4.5));
+    cinematicCameraEndPos.copy(normalCamPos);
+    cinematicLookStart.copy(potionPos).add(new THREE.Vector3(0, 0.4, 0));
+    cinematicLookEnd.copy(normalLook);
   }
 }
 
-function updateCinematicBriefing(dt) {
-  if (!briefingActive) return;
+function updateCinematicIntro(dt) {
+  if (!cinematicActive || isSkippingIntro) return;
 
-  if (briefingSkipped) {
-    // Camera rests above character waiting
-    camera.position.lerp(new THREE.Vector3(0, 12, 10), Math.min(1.0, dt * 4.0));
-    cameraLookTarget.lerp(new THREE.Vector3(0, 1.2, 0), Math.min(1.0, dt * 4.0));
-    camera.lookAt(cameraLookTarget);
+  cinematicTimer += dt;
+  const t = Math.min(cinematicTimer, CINEMATIC_DURATION);
 
-    // If singleplayer / local testing, allow auto-progression
-    if (!isMultiplayerMatch) {
-      briefingTimer += dt;
-      if (briefingTimer >= briefingDuration) {
-        startMatchCountdown(3);
-      }
-    }
-    return;
+  const sceneIdx = Math.min(4, Math.floor(t / 3.0));
+  if (sceneIdx !== cinematicCurrentScene) {
+    updateCinematicScene(sceneIdx);
   }
 
-  briefingTimer += dt;
+  const sceneElapsed = t - sceneIdx * 3.0;
+  const rawProgress = Math.min(1.0, sceneElapsed / 3.0);
+  const easeProgress = rawProgress * rawProgress * (3 - 2 * rawProgress);
 
-  // Phase A: Island Opening (0 to 3.5s)
-  if (briefingTimer < 3.5) {
-    const p = briefingTimer / 3.5;
-    camera.position.lerpVectors(new THREE.Vector3(28, 30, 28), new THREE.Vector3(8, 16, 16), p);
-    cameraLookTarget.lerpVectors(new THREE.Vector3(0, 2, 0), new THREE.Vector3(0, 3, 2), p);
-    camera.lookAt(cameraLookTarget);
-    if (briefingTitle) briefingTitle.textContent = 'COIN RUSH ISLAND';
-    if (briefingSubtitle) briefingSubtitle.textContent = 'Jelajahi pantai, sungai, bukit, dan reruntuhan kuno!';
-  }
-  // Phase B: Hazards & Traps (3.5 to 9.0s)
-  else if (briefingTimer < 9.0) {
-    const subP = (briefingTimer - 3.5) / 5.5;
-    if (subP < 0.45) {
-      // River & Crocodiles
-      camera.position.lerpVectors(new THREE.Vector3(8, 16, 16), new THREE.Vector3(2, 6, -12), (subP / 0.45));
-      cameraLookTarget.set(0, 1.2, -4);
-      camera.lookAt(cameraLookTarget);
-      if (briefingTitle) briefingTitle.textContent = 'BAHAYA: BUAYA SUNGAI';
-      if (briefingSubtitle) briefingSubtitle.textContent = 'Menyeberanglah lewat jembatan kayu untuk menghindari gigitan buaya!';
-    } else {
-      // Traps (Spikes / Rocks / Fire)
-      camera.position.lerpVectors(new THREE.Vector3(2, 6, -12), new THREE.Vector3(14, 5, -3), (subP - 0.45) / 0.55);
-      cameraLookTarget.set(12, 1.0, -6);
-      camera.lookAt(cameraLookTarget);
-      if (briefingTitle) briefingTitle.textContent = 'WASPADAI JEBAKAN PULAU!';
-      if (briefingSubtitle) briefingSubtitle.textContent = 'Hindari jebakan duri, batu jatuh, kayu berayun, gas & semburan api!';
-    }
-  }
-  // Phase C: Healing Potion (9.0 to 12.0s)
-  else if (briefingTimer < 12.0) {
-    const p = (briefingTimer - 9.0) / 3.0;
-    const potionPos = (potions[0] && potions[0].mesh) ? potions[0].mesh.position : new THREE.Vector3(-6, 2, 4);
-    camera.position.lerpVectors(new THREE.Vector3(14, 5, -3), potionPos.clone().add(new THREE.Vector3(2.5, 2.0, 3.0)), p);
-    cameraLookTarget.copy(potionPos);
-    camera.lookAt(cameraLookTarget);
-    if (briefingTitle) briefingTitle.textContent = 'HEALING POTION';
-    if (briefingSubtitle) briefingSubtitle.textContent = 'Pulihkan +30 HP dan bertahan lebih lama! Dapat diklaim tiap pemain.';
-  }
-  // Phase D: Treasures (12.0 to 15.0s)
-  else if (briefingTimer <= briefingDuration) {
-    const p = (briefingTimer - 12.0) / 3.0;
-    const chestPos = (chests[0] && chests[0].mesh) ? chests[0].mesh.position : new THREE.Vector3(0, 2, 10);
-    camera.position.lerpVectors(new THREE.Vector3(0, 8, -6), chestPos.clone().add(new THREE.Vector3(0, 4, 6)), p);
-    cameraLookTarget.copy(chestPos);
-    camera.lookAt(cameraLookTarget);
-    if (briefingTitle) briefingTitle.textContent = 'HARTA KARUN & PETI EMAS';
-    if (briefingSubtitle) briefingSubtitle.textContent = 'Kumpulkan koin, buka peti rahasia, dan capai skor tertinggi!';
-  } else {
-    // Briefing duration reached in local mode
-    if (!isMultiplayerMatch) {
-      startMatchCountdown(3);
-    }
+  camera.position.lerpVectors(cinematicCameraStartPos, cinematicCameraEndPos, easeProgress);
+  cameraLookTarget.lerpVectors(cinematicLookStart, cinematicLookEnd, easeProgress);
+  camera.lookAt(cameraLookTarget);
+
+  if (cinematicTimer >= CINEMATIC_DURATION) {
+    cinematicActive = false;
+    const cineOverlay = document.getElementById('cinematic-overlay');
+    if (cineOverlay) cineOverlay.classList.add('hidden');
+
+    cameraYaw = 0;
+    cameraPitch = 0.22;
+    cameraDistance = 6.8;
+    cameraTargetDistance = 6.8;
+
+    startMatchCountdown(3);
   }
 }
 
 function startMatchCountdown(duration = 3) {
-  briefingActive = false;
+  cinematicActive = false;
   countdownActive = true;
   countdownTimer = duration;
   countdownDuration = duration;
+  lastCountdownAnnounced = -1;
 
-  if (briefingOverlay) briefingOverlay.classList.add('hidden');
-  if (countdownOverlay) countdownOverlay.classList.remove('hidden');
+  const cineOverlay = document.getElementById('cinematic-overlay');
+  if (cineOverlay) cineOverlay.classList.add('hidden');
 
-  // Bring camera behind character
-  camera.position.set(0, CAMERA_HEIGHT, CAMERA_DISTANCE);
-  cameraLookTarget.set(0, 1.5, 0);
-  camera.lookAt(cameraLookTarget);
+  const countOverlay = document.getElementById('countdown-overlay');
+  if (countOverlay) countOverlay.classList.remove('hidden');
+
+  if (character) {
+    camera.position.set(character.position.x, character.position.y + 3.6, character.position.z + 6.8);
+    cameraLookTarget.set(character.position.x, character.position.y + 1.35, character.position.z);
+    camera.lookAt(cameraLookTarget);
+  }
 }
 
 function updateCountdown(dt) {
@@ -1439,24 +1980,50 @@ function updateCountdown(dt) {
   countdownTimer -= dt;
   const count = Math.ceil(countdownTimer);
 
-  if (countdownNumber) {
-    if (count > 0) {
-      countdownNumber.textContent = count;
-      if (countdownSub) countdownSub.textContent = 'BERSIAPLAH!';
-    } else {
-      countdownNumber.textContent = 'GO!';
-      if (countdownSub) countdownSub.textContent = 'MULAI PETUALANGAN!';
+  const countNum = document.getElementById('countdown-number');
+  const countSub = document.getElementById('countdown-sub');
+
+  if (count > 0) {
+    if (count !== lastCountdownAnnounced) {
+      lastCountdownAnnounced = count;
+      playCountdownBeep(false);
+      if (countNum) {
+        countNum.textContent = count;
+        countNum.style.animation = 'none';
+        void countNum.offsetWidth;
+        countNum.style.animation = 'numberPulse 0.5s ease-out';
+      }
+      if (countSub) countSub.textContent = 'BERSIAPLAH!';
+    }
+  } else {
+    if (lastCountdownAnnounced !== 0) {
+      lastCountdownAnnounced = 0;
+      playCountdownBeep(true);
+      if (countNum) {
+        countNum.textContent = 'GO!';
+        countNum.style.animation = 'none';
+        void countNum.offsetWidth;
+        countNum.style.animation = 'numberPulse 0.5s ease-out';
+      }
+      if (countSub) countSub.textContent = 'MULAI PETUALANGAN!';
     }
   }
 
-  // Smooth camera to character position
-  camera.position.lerp(new THREE.Vector3(character.position.x, character.position.y + CAMERA_HEIGHT, character.position.z + CAMERA_DISTANCE), Math.min(1.0, dt * 6.0));
-  cameraLookTarget.lerp(new THREE.Vector3(character.position.x, character.position.y + 1.5, character.position.z), Math.min(1.0, dt * 6.0));
-  camera.lookAt(cameraLookTarget);
+  // Smooth camera anchor behind character
+  if (character) {
+    const desiredPos = new THREE.Vector3(character.position.x, character.position.y + 3.6, character.position.z + 6.8);
+    const desiredLook = new THREE.Vector3(character.position.x, character.position.y + 1.35, character.position.z);
+    camera.position.lerp(desiredPos, Math.min(1.0, dt * 8.0));
+    cameraLookTarget.lerp(desiredLook, Math.min(1.0, dt * 8.0));
+    camera.lookAt(cameraLookTarget);
+  }
 
-  // If local / singleplayer and countdown ends:
-  if (!isMultiplayerMatch && countdownTimer <= -0.5) {
-    startOfficialMatchGameplay({ duration: GAME_DURATION });
+  if (countdownTimer <= -0.6) {
+    countdownActive = false;
+    const countOverlay = document.getElementById('countdown-overlay');
+    if (countOverlay) countOverlay.classList.add('hidden');
+
+    beginGameplay();
   }
 }
 
@@ -1799,24 +2366,18 @@ function endMultiplayerMatch(results) {
   document.getElementById('result-screen').classList.remove('hidden');
 }
 
-// ===== GAME FLOW =====
-function startGame() {
-  resumeAudio();
-
-  // Reset state
+// ===== GAME FLOW & TRANSITIONS =====
+function prepareGameSession() {
   isMultiplayerMatch = false;
-  const mpInfo = document.getElementById('hud-mp-info');
-  if (mpInfo) mpInfo.classList.add('hidden');
-  const mpTable = document.getElementById('mp-results-table');
-  if (mpTable) mpTable.classList.add('hidden');
-
-  gameState = 'playing';
+  gameState = 'preparing';
+  isGamePaused = false;
+  isExitConfirmOpen = false;
+  totalPausedDuration = 0;
   score = 0;
   health = MAX_HEALTH;
   coinsCollected = 0;
   chestsOpened = 0;
   timeRemaining = GAME_DURATION;
-  gameStartTime = performance.now();
 
   crocDamageCooldown = 0;
   damageOverlayTimer = 0;
@@ -1829,7 +2390,6 @@ function startGame() {
   jumpVelocityY = 0;
   jumpHeight = 0;
 
-  // Reset Tahap C state
   comboCount = 0;
   maxCombo = 0;
   lastCoinCollectTime = 0;
@@ -1838,20 +2398,18 @@ function startGame() {
   perfectBonusAwarded = false;
   difficultyMultiplier = 1.0;
 
-  // Reset crocodiles
   if (crocodileManager) {
     crocodileManager.reset();
   }
 
-  // Set active player name and overhead badge
   const activeName = getActivePlayerName();
   updateLocalPlayerNameTag(activeName);
 
-  // Reset character
+  // Position character at island origin facing forward
   character.position.set(0, 0, 0);
-  character.rotation.y = Math.PI; // Face forward into the island
+  character.rotation.y = Math.PI;
 
-  // Reset camera behind character immediately with 360 orbit defaults
+  // Position camera behind character
   cameraYaw = Math.PI;
   cameraPitch = 0.32;
   cameraDistance = 6.8;
@@ -1870,27 +2428,18 @@ function startGame() {
   });
   particles = [];
 
-  // Reset round items (controlled seed per round for reproducible/multiplayer layout)
+  // Reset round collectibles
   const roundSeed = Math.floor(Math.random() * 900000) + 100000;
   const roundData = generateRoundCollectibles(roundSeed, colliders);
 
-  // Clean old coins from scene
   coins.forEach(c => {
     if (c.mesh) scene.remove(c.mesh);
   });
   coins = [];
   createCoins(roundData.coins);
-
-  // Rebuild chests
   createChests(roundData.chests);
-
-  // Rebuild potions
   createPotions(roundData.potions);
-
-  // Rebuild golden key
   createKeyItem(roundData.key);
-
-  // Reset side missions
   initMissions();
 
   // Reset input
@@ -1902,28 +2451,26 @@ function startGame() {
   mobileInput.down = false;
   mobileInput.left = false;
   mobileInput.right = false;
+}
 
-  // UI
-  document.getElementById('main-menu').classList.add('hidden');
-  document.getElementById('multiplayer-menu').classList.add('hidden');
-  document.getElementById('how-to-play').classList.add('hidden');
-  document.getElementById('settings-menu').classList.add('hidden');
-  document.getElementById('result-screen').classList.add('hidden');
-  document.getElementById('hud').classList.remove('hidden');
+function beginGameplay() {
+  gameState = 'playing';
+  gameStartTime = performance.now();
+  totalPausedDuration = 0;
+  isGamePaused = false;
+
+  document.getElementById('hud')?.classList.remove('hidden');
   if (minimapContainer) minimapContainer.classList.remove('hidden');
-
   if (hazardWarning) hazardWarning.classList.add('hidden');
   if (damageOverlay) damageOverlay.classList.remove('active');
 
   if (isMobileDevice()) {
-    document.getElementById('mobile-controls').classList.remove('hidden');
+    document.getElementById('mobile-controls')?.classList.remove('hidden');
   } else {
-    document.getElementById('mobile-controls').classList.add('hidden');
+    document.getElementById('mobile-controls')?.classList.add('hidden');
   }
 
   hudTimer.classList.remove('warning');
-
-  // Update HUDs
   updateHUD();
   updateHealthHUD();
 
@@ -1933,13 +2480,175 @@ function startGame() {
     else reticle.classList.add('hidden');
   }
 
-  // Music
+  const canvas = renderer ? renderer.domElement : document.getElementById('game-canvas');
+  if (isShiftLockActive && !isTouchDevice() && canvas) {
+    safeRequestPointerLock(canvas);
+  }
+
   startMusic();
+}
+
+function startSoloAdventureWithAnimation() {
+  resumeAudio();
+
+  const mainMenu = document.getElementById('main-menu');
+  if (mainMenu) mainMenu.classList.add('hidden');
+
+  // 1. Prepare scene & round data
+  prepareGameSession();
+
+  // 2. Start 15-Second Cinematic Island Intro
+  startCinematicIslandIntro();
+}
+
+function startGame() {
+  startSoloAdventureWithAnimation();
+}
+
+// ===== PAUSE & EXIT CONTROLLERS =====
+function togglePause() {
+  if (gameState !== 'playing') return;
+  if (isGamePaused) {
+    resumeGame();
+  } else {
+    pauseGame();
+  }
+}
+
+function pauseGame() {
+  if (gameState !== 'playing' || isGamePaused) return;
+  isGamePaused = true;
+  pauseStartTime = performance.now();
+
+  const pauseOverlay = document.getElementById('pause-overlay');
+  if (pauseOverlay) pauseOverlay.classList.remove('hidden');
+
+  if (document.pointerLockElement) {
+    safeExitPointerLock();
+  }
+}
+
+function resumeGame() {
+  if (!isGamePaused) return;
+  isGamePaused = false;
+  totalPausedDuration += (performance.now() - pauseStartTime);
+
+  const pauseOverlay = document.getElementById('pause-overlay');
+  if (pauseOverlay) pauseOverlay.classList.add('hidden');
+
+  const exitModal = document.getElementById('exit-confirm-modal');
+  if (exitModal) exitModal.classList.add('hidden');
+  isExitConfirmOpen = false;
+
+  const canvas = renderer ? renderer.domElement : document.getElementById('game-canvas');
+  if (isShiftLockActive && !isTouchDevice() && canvas) {
+    safeRequestPointerLock(canvas);
+  }
+}
+
+function restartGame() {
+  const pauseOverlay = document.getElementById('pause-overlay');
+  if (pauseOverlay) pauseOverlay.classList.add('hidden');
+  const exitModal = document.getElementById('exit-confirm-modal');
+  if (exitModal) exitModal.classList.add('hidden');
+  isGamePaused = false;
+  isExitConfirmOpen = false;
+  totalPausedDuration = 0;
+
+  prepareGameSession();
+  beginGameplay();
+}
+
+function openExitConfirmModal() {
+  isExitConfirmOpen = true;
+  const exitModal = document.getElementById('exit-confirm-modal');
+  if (exitModal) exitModal.classList.remove('hidden');
+}
+
+function closeExitConfirmModal() {
+  isExitConfirmOpen = false;
+  const exitModal = document.getElementById('exit-confirm-modal');
+  if (exitModal) exitModal.classList.add('hidden');
+}
+
+function exitToMenu() {
+  showMainMenu();
+}
+
+// ===== VALID SOLO SCORE SUBMISSION =====
+let hasSubmittedScore = false;
+
+async function submitSoloScore(finalScore) {
+  const submitStatus = document.getElementById('result-submit-status');
+  const btnRetry = document.getElementById('btn-retry-submit');
+
+  const validScore = Math.floor(finalScore || 0);
+  const validName = currentPlayerName || 'Petualang';
+
+  if (validScore <= 0) {
+    if (submitStatus) {
+      submitStatus.className = 'submit-status-pill';
+      submitStatus.textContent = 'Skor 0 (tidak dicatat ke papan skor)';
+    }
+    if (btnRetry) btnRetry.classList.add('hidden');
+    return { success: false, reason: 'score_zero_or_negative' };
+  }
+
+  if (!supabaseLeaderboard.isConfigured()) {
+    if (submitStatus) {
+      submitStatus.className = 'submit-status-pill';
+      submitStatus.textContent = 'Penyimpanan lokal aktif';
+    }
+    if (btnRetry) btnRetry.classList.add('hidden');
+    return { success: true, localOnly: true, score: validScore, name: validName };
+  }
+
+  if (submitStatus) {
+    submitStatus.className = 'submit-status-pill';
+    submitStatus.textContent = 'Menyimpan skor ke papan skor...';
+  }
+  if (btnRetry) btnRetry.classList.add('hidden');
+
+  try {
+    const res = await supabaseLeaderboard.submitScore(validName, validScore);
+    if (res.success) {
+      hasSubmittedScore = true;
+      if (submitStatus) {
+        submitStatus.className = 'submit-status-pill success';
+        submitStatus.textContent = '✓ Skor berhasil disimpan ke papan skor!';
+      }
+      if (btnRetry) btnRetry.classList.add('hidden');
+    } else {
+      if (submitStatus) {
+        submitStatus.className = 'submit-status-pill error';
+        submitStatus.textContent = `Gagal menyimpan: ${res.error || 'Terputus'}`;
+      }
+      if (btnRetry) {
+        btnRetry.classList.remove('hidden');
+        btnRetry.onclick = () => submitSoloScore(finalScore);
+      }
+    }
+    return res;
+  } catch (err) {
+    if (submitStatus) {
+      submitStatus.className = 'submit-status-pill error';
+      submitStatus.textContent = 'Gagal menyimpan skor';
+    }
+    if (btnRetry) {
+      btnRetry.classList.remove('hidden');
+      btnRetry.onclick = () => submitSoloScore(finalScore);
+    }
+    return { success: false, error: err.message };
+  }
 }
 
 function endGame(reason = 'time') {
   gameState = 'gameover';
   stopMusic();
+
+  if (document.pointerLockElement) {
+    safeExitPointerLock();
+  }
 
   const reticle = document.getElementById('shift-lock-reticle');
   if (reticle) reticle.classList.add('hidden');
@@ -1949,34 +2658,42 @@ function endGame(reason = 'time') {
     highScore = score;
     try {
       localStorage.setItem(HIGH_SCORE_KEY, String(highScore));
-    } catch (e) {
-      // Ignore if localStorage unavailable
-    }
-  }
-
-  // Submit to Supabase leaderboard if online & configured
-  if (score > 0 && supabaseLeaderboard.isConfigured()) {
-    const pName = localStorage.getItem('coin_rush_player_name') || 'Petualang';
-    supabaseLeaderboard.submitScore(pName, score).catch(() => {});
+    } catch (e) {}
   }
 
   // Update badge on menu
   const badgeEl = document.getElementById('menu-high-score-val');
   if (badgeEl) badgeEl.textContent = highScore;
 
+  // Submit valid solo score with real-time feedback
+  hasSubmittedScore = false;
+  submitSoloScore(score);
+
   // Hide gameplay UI
-  document.getElementById('hud').classList.add('hidden');
-  document.getElementById('mobile-controls').classList.add('hidden');
-  interactPrompt.classList.add('hidden');
+  document.getElementById('hud')?.classList.add('hidden');
+  document.getElementById('mobile-controls')?.classList.add('hidden');
+  interactPrompt?.classList.add('hidden');
   if (mobileInteract) mobileInteract.classList.add('hidden');
   if (hazardWarning) hazardWarning.classList.add('hidden');
   if (damageOverlay) damageOverlay.classList.remove('active');
   hudTimer.classList.remove('warning');
 
   // Accurate results
-  document.getElementById('result-score').textContent = score;
-  document.getElementById('result-coins').textContent = `${coinsCollected} / ${TOTAL_COINS}`;
-  document.getElementById('result-chests').textContent = `${chestsOpened} / ${chests.length}`;
+  const elScore = document.getElementById('result-score');
+  if (elScore) elScore.textContent = score;
+  const elCoins = document.getElementById('result-coins');
+  if (elCoins) elCoins.textContent = `${coinsCollected} / ${TOTAL_COINS}`;
+  const elChests = document.getElementById('result-chests');
+  if (elChests) elChests.textContent = `${chestsOpened} / ${chests.length}`;
+  const elFinalHp = document.getElementById('result-final-health');
+  if (elFinalHp) elFinalHp.textContent = `${Math.max(0, Math.ceil(health))} HP`;
+  const elDuration = document.getElementById('result-duration');
+  if (elDuration) {
+    const elapsedSecs = Math.max(0, Math.round(GAME_DURATION - timeRemaining));
+    elDuration.textContent = `${elapsedSecs}s`;
+  }
+  const elBest = document.getElementById('result-best');
+  if (elBest) elBest.textContent = highScore;
 
   const comboEl = document.getElementById('result-max-combo');
   if (comboEl) comboEl.textContent = `${maxCombo}x`;
@@ -1990,21 +2707,7 @@ function endGame(reason = 'time') {
   const btnPlayAgain = document.getElementById('btn-play-again');
   const btnSpectate = document.getElementById('btn-spectate');
 
-  if (reason === 'eliminated' || (isMultiplayerMatch && reason === 'health')) {
-    isEliminated = true;
-    playDefeatSound();
-    resultTitle.textContent = 'KAMU TERELIMINASI';
-    resultTitle.classList.add('defeat-title');
-    resultReason.textContent = 'Kesehatan Anda habis! Anda tereliminasi dari pertandingan ronde ini.';
-    resultReason.classList.remove('hidden');
-    resultIconDefeat.classList.remove('hidden');
-    resultIconClock.classList.add('hidden');
-    if (msgEl) msgEl.textContent = 'Pilih Mode Penonton untuk melihat petualang lain yang masih bertahan hidup!';
-
-    // NO "MAIN LAGI" button after death in multiplayer!
-    if (btnPlayAgain) btnPlayAgain.classList.add('hidden');
-    if (btnSpectate) btnSpectate.classList.remove('hidden');
-  } else if (reason === 'health') {
+  if (reason === 'health') {
     playDefeatSound();
     resultTitle.textContent = 'PERMAINAN BERAKHIR';
     resultTitle.classList.add('defeat-title');
@@ -2018,13 +2721,13 @@ function endGame(reason = 'time') {
     if (msgEl) msgEl.textContent = 'Menyeberang lewat jembatan kayu mencegah damage air. Terus bergerak dan lompat untuk menghindari buaya!';
   } else {
     playGameOverSound();
-    resultTitle.textContent = isMultiplayerMatch ? 'PERTANDINGAN SELESAI!' : 'WAKTU HABIS!';
+    resultTitle.textContent = 'WAKTU HABIS!';
     resultTitle.classList.remove('defeat-title');
-    resultReason.textContent = isMultiplayerMatch ? 'Waktu 120 detik ronde kompetisi telah selesai!' : 'Petualangan luar biasa! Anda telah menjelajahi pulau tropis sebelum waktu habis.';
+    resultReason.textContent = 'Petualangan luar biasa! Anda telah menjelajahi pulau tropis sebelum waktu habis.';
     resultReason.classList.remove('hidden');
     resultIconClock.classList.remove('hidden');
     resultIconDefeat.classList.add('hidden');
-    btnPlayAgainText.textContent = isMultiplayerMatch ? 'MENU UTAMA' : 'MAIN LAGI';
+    btnPlayAgainText.textContent = 'MAIN LAGI';
     if (btnPlayAgain) btnPlayAgain.classList.remove('hidden');
     if (btnSpectate) btnSpectate.classList.add('hidden');
 
@@ -2043,7 +2746,7 @@ function endGame(reason = 'time') {
     }
   }
 
-  document.getElementById('result-screen').classList.remove('hidden');
+  document.getElementById('result-screen')?.classList.remove('hidden');
   if (minimapContainer) minimapContainer.classList.add('hidden');
 }
 
@@ -2052,8 +2755,22 @@ function showMainMenu() {
   isMultiplayerMatch = false;
   isEliminated = false;
   isSpectating = false;
+  isGamePaused = false;
+  isExitConfirmOpen = false;
+  totalPausedDuration = 0;
   exitSpectatorMode();
   stopMusic();
+
+  if (document.pointerLockElement) {
+    try { document.exitPointerLock?.(); } catch (e) {}
+  }
+
+  const pauseOverlay = document.getElementById('pause-overlay');
+  if (pauseOverlay) pauseOverlay.classList.add('hidden');
+  const exitModal = document.getElementById('exit-confirm-modal');
+  if (exitModal) exitModal.classList.add('hidden');
+  const startBanner = document.getElementById('adventure-start-banner');
+  if (startBanner) startBanner.classList.add('hidden');
 
   const reticle = document.getElementById('shift-lock-reticle');
   if (reticle) reticle.classList.add('hidden');
@@ -2067,19 +2784,25 @@ function showMainMenu() {
   const badgeEl = document.getElementById('menu-high-score-val');
   if (badgeEl) badgeEl.textContent = highScore;
 
-  document.getElementById('hud').classList.add('hidden');
+  document.getElementById('hud')?.classList.add('hidden');
   if (minimapContainer) minimapContainer.classList.add('hidden');
-  document.getElementById('mobile-controls').classList.add('hidden');
-  interactPrompt.classList.add('hidden');
+  document.getElementById('mobile-controls')?.classList.add('hidden');
+  interactPrompt?.classList.add('hidden');
   if (mobileInteract) mobileInteract.classList.add('hidden');
   if (hazardWarning) hazardWarning.classList.add('hidden');
   if (damageOverlay) damageOverlay.classList.remove('active');
-  document.getElementById('result-screen').classList.add('hidden');
-  if (briefingOverlay) briefingOverlay.classList.add('hidden');
-  if (countdownOverlay) countdownOverlay.classList.add('hidden');
-  document.getElementById('how-to-play').classList.add('hidden');
-  document.getElementById('settings-menu').classList.add('hidden');
-  document.getElementById('main-menu').classList.remove('hidden');
+  cinematicActive = false;
+  countdownActive = false;
+  isSkippingIntro = false;
+  document.getElementById('cinematic-overlay')?.classList.add('hidden');
+  document.getElementById('countdown-overlay')?.classList.add('hidden');
+  document.getElementById('briefing-overlay')?.classList.add('hidden');
+  document.getElementById('how-to-play')?.classList.add('hidden');
+  document.getElementById('settings-menu')?.classList.add('hidden');
+  document.getElementById('leaderboard-menu')?.classList.add('hidden');
+  document.getElementById('main-menu')?.classList.remove('hidden');
+
+  populateMiniLeaderboard();
 
   // Reset character for menu view
   character.position.set(0, 0, 0);
@@ -2586,11 +3309,27 @@ function checkCoinCollection() {
         showCoinPopup(`+${COIN_POINTS}`);
       }
 
-      // Check perfect collection achievement (all 40 coins)
+      // Check perfect collection achievement (all 80 coins)
       if (coinsCollected === TOTAL_COINS && !perfectBonusAwarded) {
         perfectBonusAwarded = true;
         score += PERFECT_BONUS_POINTS;
-        showCoinPopup('KOLEKSI SEMPURNA! SEMUA 40 KOIN! +100 POIN!', true);
+        showCoinPopup('KOLEKSI SEMPURNA! SEMUA 80 KOIN! +100 POIN!', true);
+      }
+
+      // Visual pulse feedback on HUD and Quest Tracker
+      const coinHud = document.getElementById('hud-coins-wrapper');
+      const questTracker = document.getElementById('hud-quest-tracker');
+      if (coinHud) {
+        coinHud.classList.remove('coin-collect-pulse');
+        void coinHud.offsetWidth;
+        coinHud.classList.add('coin-collect-pulse');
+        setTimeout(() => coinHud.classList.remove('coin-collect-pulse'), 350);
+      }
+      if (questTracker) {
+        questTracker.classList.remove('coin-collect-pulse');
+        void questTracker.offsetWidth;
+        questTracker.classList.add('coin-collect-pulse');
+        setTimeout(() => questTracker.classList.remove('coin-collect-pulse'), 350);
       }
 
       // Particle effect
@@ -2604,11 +3343,13 @@ function checkCoinCollection() {
 }
 
 // ===== POTION COLLECTION (Prioritas 2) =====
-function checkPotionCollection() {
-  if (gameState !== 'playing' || isEliminated || health <= 0) return;
-  if (multiplayerManager && multiplayerManager.isHost) return; // Host cannot collect potions
-  if (health >= MAX_HEALTH) return; // Do not waste potion when health is already full!
+let lastPotionFullNoticeTime = 0;
 
+function checkPotionCollection() {
+  if (gameState !== 'playing' || isGamePaused || isEliminated || health <= 0) return;
+  if (multiplayerManager && multiplayerManager.isHost) return;
+
+  const now = performance.now();
   potions.forEach(potion => {
     if (potion.collected || claimedPotions.has(potion.index)) return;
 
@@ -2617,11 +3358,24 @@ function checkPotionCollection() {
     const dz = character.position.z - potion.mesh.position.z;
     const dist = Math.hypot(dx, dz);
 
-    if (dist < POTION_PICKUP_DIST && Math.abs(dy) < 2.0) {
+    if (dist < POTION_PICKUP_DIST && Math.abs(dy) < 2.6) {
+      if (health >= MAX_HEALTH) {
+        // Player at max health: do not waste potion, show helpful feedback throttled
+        if (now - lastPotionFullNoticeTime > 2500) {
+          lastPotionFullNoticeTime = now;
+          showCoinPopup('KESEHATAN PENUH (100 HP)');
+        }
+        return;
+      }
+
+      // Claim potion: heal player
       claimedPotions.add(potion.index);
       potion.collected = true;
       potion.mesh.visible = false;
-      health = Math.min(MAX_HEALTH, health + (potion.heal || POTION_HEAL));
+      scene.remove(potion.mesh);
+
+      const healAmount = potion.heal || POTION_HEAL;
+      health = Math.min(MAX_HEALTH, health + healAmount);
       updateHealthHUD();
 
       // Visual particles & popup
@@ -2630,7 +3384,7 @@ function checkPotionCollection() {
       particles.push(healPart);
 
       playChestSound();
-      showCoinPopup(`+${potion.heal || POTION_HEAL} HP KESEHATAN!`);
+      showCoinPopup(`+${healAmount} HP KESEHATAN!`);
 
       if (isMultiplayerMatch && multiplayerManager) {
         multiplayerManager.sendClaimPotion(potion.index);
@@ -2774,9 +3528,10 @@ function updateInteractPrompt() {
 
 // ===== TIMER & PROGRESSIVE DIFFICULTY =====
 function updateTimer() {
-  if (gameState !== 'playing') return;
+  if (gameState !== 'playing' || isGamePaused) return;
 
-  const elapsed = (performance.now() - gameStartTime) / 1000;
+  const currentNow = performance.now();
+  const elapsed = (currentNow - gameStartTime - totalPausedDuration) / 1000;
   timeRemaining = Math.max(0, GAME_DURATION - elapsed);
 
   // Progressive difficulty scaling
@@ -2807,12 +3562,38 @@ function updateTimer() {
 
 // ===== HUD =====
 function updateHUD() {
-  const totalSecs = Math.ceil(timeRemaining);
+  const totalSecs = Math.max(0, Math.ceil(timeRemaining));
   const mins = Math.floor(totalSecs / 60);
   const secs = totalSecs % 60;
-  hudTimer.textContent = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
-  hudScore.textContent = score;
-  hudCoins.textContent = `${coinsCollected} / ${TOTAL_COINS}`;
+  if (hudTimer) {
+    hudTimer.textContent = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+  }
+  if (hudScore) hudScore.textContent = score;
+  if (hudCoins) hudCoins.textContent = `${coinsCollected} / ${TOTAL_COINS}`;
+
+  const hudPlayer = document.getElementById('hud-player-name');
+  if (hudPlayer) hudPlayer.textContent = currentPlayerName || 'Petualang';
+
+  // Island Quest Objective Tracker
+  const questCoins = document.getElementById('quest-coins-val');
+  const questBadge = document.getElementById('quest-status-badge');
+  const questTracker = document.getElementById('hud-quest-tracker');
+  if (questCoins) {
+    questCoins.textContent = `${String(coinsCollected).padStart(2, '0')} / ${TOTAL_COINS}`;
+  }
+  if (coinsCollected >= TOTAL_COINS) {
+    if (questBadge) {
+      questBadge.textContent = 'SELESAI';
+      questBadge.classList.add('done');
+    }
+    if (questTracker) questTracker.classList.add('completed');
+  } else {
+    if (questBadge) {
+      questBadge.textContent = 'ACTIVE';
+      questBadge.classList.remove('done');
+    }
+    if (questTracker) questTracker.classList.remove('completed');
+  }
 }
 
 function updateHealthHUD() {
@@ -2890,12 +3671,12 @@ function animate() {
   }
 
   // Crocodile attack cooldown
-  if (crocDamageCooldown > 0) {
+  if (crocDamageCooldown > 0 && !isGamePaused) {
     crocDamageCooldown -= dt;
   }
 
   // Update crocodiles with state machine AI and progressive difficulty
-  if (crocodileManager) {
+  if (crocodileManager && !isGamePaused) {
     const attackingCroc = crocodileManager.update(
       dt,
       character ? character.position : null,
@@ -2922,7 +3703,7 @@ function animate() {
   }
 
   // Update Dangerous Hazard Traps (6 types)
-  if (trapManager && gameState === 'playing' && !isEliminated) {
+  if (trapManager && gameState === 'playing' && !isEliminated && !isGamePaused) {
     const trapHit = trapManager.update(dt, elapsed, character.position, health > 0);
     if (trapHit) {
       applyDamage(trapHit.damage, trapHit.type || 'trap');
@@ -2933,9 +3714,9 @@ function animate() {
     }
   }
 
-  // Cinematic Briefing update
-  if (briefingActive) {
-    updateCinematicBriefing(dt);
+  // 15-Second Cinematic Island Intro update
+  if (cinematicActive) {
+    updateCinematicIntro(dt);
   }
 
   // Match Countdown update
@@ -2949,7 +3730,7 @@ function animate() {
   }
 
   // Controlled death fall animation (0.6s) - Prioritas 8
-  if (deathAnimActive) {
+  if (deathAnimActive && !isGamePaused) {
     deathAnimTimer += dt;
     const progress = deathAnimTimer / 0.6;
     animateCharacterDeath(character, progress);
@@ -2962,52 +3743,62 @@ function animate() {
 
   // Update gameplay
   if (gameState === 'playing') {
-    updateTimer();
-    const isHost = multiplayerManager && multiplayerManager.isHost;
+    if (!isGamePaused) {
+      updateTimer();
+      const isHost = multiplayerManager && multiplayerManager.isHost;
 
-    if (isHost) {
-      if (!isSpectating) enterSpectatorMode();
-    } else if (!deathAnimActive && !isEliminated) {
-      const moveInfo = updateMovement(dt);
-      updateCamera(dt);
-      checkCoinCollection();
-      checkPotionCollection();
-      checkKeyCollection();
-      checkSecretGrotto();
-      updateInteractPrompt();
-      animateCharacter(
-        character,
-        moveInfo.isMoving,
-        dt,
-        moveInfo.speedRatio,
-        moveInfo.inRiver && !moveInfo.onBridge,
-        isJumping,
-        jumpHeight,
-        getGroundHeight(character.position.x, character.position.z)
-      );
-
-      if (isMultiplayerMatch && multiplayerManager) {
-        multiplayerManager.sendPlayerPos(
-          character.position.x,
-          character.position.y,
-          character.position.z,
-          character.rotation.y,
+      if (isHost) {
+        if (!isSpectating) enterSpectatorMode();
+      } else if (!deathAnimActive && !isEliminated) {
+        const moveInfo = updateMovement(dt);
+        updateCamera(dt);
+        checkCoinCollection();
+        checkPotionCollection();
+        checkKeyCollection();
+        checkSecretGrotto();
+        updateInteractPrompt();
+        animateCharacter(
+          character,
           moveInfo.isMoving,
+          dt,
+          moveInfo.speedRatio,
+          moveInfo.inRiver && !moveInfo.onBridge,
           isJumping,
-          jumpHeight
+          jumpHeight,
+          getGroundHeight(character.position.x, character.position.z),
+          {
+            velocity: playerVelocity,
+            isShiftLock: isShiftLockActive,
+            cameraYaw,
+          }
         );
+
+        if (isMultiplayerMatch && multiplayerManager) {
+          multiplayerManager.sendPlayerPos(
+            character.position.x,
+            character.position.y,
+            character.position.z,
+            character.rotation.y,
+            moveInfo.isMoving,
+            isJumping,
+            jumpHeight
+          );
+        }
+
+        // River Hazard Detection (feet in water and not on safe wooden bridge)
+        if (moveInfo.inRiver && !moveInfo.onBridge) {
+          if (hazardWarning) hazardWarning.classList.remove('hidden');
+          applyDamage(10 * dt, 'river');
+        } else {
+          if (hazardWarning) hazardWarning.classList.add('hidden');
+        }
       }
 
-      // River Hazard Detection (feet in water and not on safe wooden bridge)
-      if (moveInfo.inRiver && !moveInfo.onBridge) {
-        if (hazardWarning) hazardWarning.classList.remove('hidden');
-        applyDamage(10 * dt, 'river');
-      } else {
-        if (hazardWarning) hazardWarning.classList.add('hidden');
-      }
+      updateHUD();
+    } else {
+      // While paused: keep camera update active if pointer dragged
+      updateCamera(dt);
     }
-
-    updateHUD();
 
     // Render Minimap with terrain, coins, chests, crocs, potions, and key
     if (minimap && character) {
@@ -3028,39 +3819,45 @@ function animate() {
     camera.position.z = Math.sin(orbitAngle) * 30;
     camera.position.y = 18;
     camera.lookAt(0, 2, 0);
+  } else if (gameState === 'briefing') {
+    // Cinematic overview of island during briefing
+    cameraYaw += dt * 0.08;
+    updateCamera(dt);
   }
 
   // Update remote multiplayer players
-  if (multiplayerManager) {
+  if (multiplayerManager && !isGamePaused) {
     multiplayerManager.update(dt);
   }
 
-  // Animate coins
-  const visibleCoins = coins.filter(c => !c.collected).map(c => c.mesh);
-  animateCoins(visibleCoins, elapsed);
+  if (!isGamePaused) {
+    // Animate coins
+    const visibleCoins = coins.filter(c => !c.collected).map(c => c.mesh);
+    animateCoins(visibleCoins, elapsed);
 
-  // Animate health potions (gentle float & spin)
-  if (potions.length > 0) {
-    potions.forEach(pot => {
-      if (!pot.collected && pot.mesh) {
-        pot.mesh.rotation.y = elapsed * 1.8;
-        pot.mesh.position.y = pot.baseY + Math.sin(elapsed * 3.0 + pot.index) * 0.12;
-      }
-    });
+    // Animate health potions (gentle float & spin)
+    if (potions.length > 0) {
+      potions.forEach(pot => {
+        if (!pot.collected && pot.mesh) {
+          pot.mesh.rotation.y = elapsed * 1.8;
+          pot.mesh.position.y = pot.baseY + Math.sin(elapsed * 3.0 + pot.index) * 0.12;
+        }
+      });
+    }
+
+    // Animate golden key (float & spin)
+    if (keyItem && !keyItem.collected && keyItem.mesh) {
+      keyItem.mesh.rotation.y = elapsed * 2.2;
+      keyItem.mesh.position.y = keyItem.baseY + Math.sin(elapsed * 3.5) * 0.15;
+    }
+
+    // Update particles with scene cleanup
+    if (particles.length > 0) {
+      particles = updateParticles(particles, dt, scene);
+    }
   }
 
-  // Animate golden key (float & spin)
-  if (keyItem && !keyItem.collected && keyItem.mesh) {
-    keyItem.mesh.rotation.y = elapsed * 2.2;
-    keyItem.mesh.position.y = keyItem.baseY + Math.sin(elapsed * 3.5) * 0.15;
-  }
-
-  // Update particles with scene cleanup
-  if (particles.length > 0) {
-    particles = updateParticles(particles, dt, scene);
-  }
-
-  // Render
+  // Render (Always maintains active frame rendering for butter-smooth visual)
   renderer.render(scene, camera);
 }
 
@@ -3182,7 +3979,11 @@ window.game = {
     if (multiplayerManager) multiplayerManager.startMatch();
   },
   getGameState: () => gameState,
+  getState: () => gameState,
+  getTimeRemaining: () => timeRemaining,
+  stepCinematic: (dt) => { if (cinematicActive) updateCinematicIntro(dt); },
   getScore: () => score,
+  getHealth: () => health,
   setPlayerPos: (x, z) => {
     character.position.x = x;
     character.position.z = z;
@@ -3277,9 +4078,27 @@ window.game = {
           moveInfo.inRiver && !moveInfo.onBridge,
           isJumping,
           jumpHeight,
-          getGroundHeight(character.position.x, character.position.z)
+          getGroundHeight(character.position.x, character.position.z),
+          {
+            velocity: playerVelocity,
+            isShiftLock: isShiftLockActive,
+            cameraYaw,
+          }
         );
       }
     }
   },
+  isPaused: () => isGamePaused,
+  pause: () => pauseGame(),
+  resume: () => resumeGame(),
+  togglePause: () => togglePause(),
+  restartGame: () => restartGame(),
+  exitToMenu: () => exitToMenu(),
+  openExitConfirm: () => openExitConfirmModal(),
+  startSoloAdventure: () => startSoloAdventureWithAnimation(),
+  submitSoloScore: (finalScore) => submitSoloScore(finalScore),
+  skipIntro: () => skipCinematicIntro(),
+  isCinematicActive: () => cinematicActive,
+  getCinematicScene: () => cinematicCurrentScene,
+  isCountdownActive: () => countdownActive,
 };

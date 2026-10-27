@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="/src/style.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
   <div id="game-container">
@@ -16,68 +16,184 @@
     <!-- Damage Flash Overlay -->
     <div id="damage-overlay" class="damage-overlay"></div>
 
-    <!-- Main Menu -->
-    <div id="main-menu" class="overlay">
-      <div class="menu-content">
-        <h1 class="game-title">COIN RUSH<br><span class="title-accent">ISLAND</span></h1>
-        <p class="tagline">Jelajahi Pulau, Kumpulkan Harta!</p>
-        <div id="menu-high-score-badge" class="menu-record-badge">
-          REKOR PRIBADI: <span id="menu-high-score-val">0</span>
-        </div>
+    <!-- Main Menu (Compact, Aesthetic, No Scrolling, Viewport 1366x768 & 1440x900) -->
+    <div id="main-menu" class="overlay menu-overlay">
+      <div class="menu-container">
+        <!-- Top Utility Header Bar -->
+        <header class="menu-top-bar">
+          <div class="menu-brand">
+            <span class="brand-badge">🏝️ COIN RUSH ISLAND</span>
+          </div>
+          <div id="menu-high-score-badge" class="menu-record-badge">
+            <svg class="record-icon" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+            </svg>
+            REKOR: <span id="menu-high-score-val">0</span>
+          </div>
+        </header>
 
-        <div class="menu-buttons">
-          <button id="btn-play" class="btn btn-primary">
-            <svg class="btn-icon" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M8 5v14l11-7z"/>
-            </svg>
-            MULAI
-          </button>
-          <button id="btn-multiplayer" class="btn btn-accent">
-            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-              <circle cx="9" cy="7" r="4"></circle>
-              <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-            </svg>
-            MAIN BERSAMA (ONLINE)
-          </button>
-          <button id="btn-how-to-play" class="btn btn-secondary">
-            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
-              <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
-            </svg>
-            CARA BERMAIN
-          </button>
-          <button id="btn-settings" class="btn btn-secondary">
-            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="3"/>
-              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-            </svg>
-            PENGATURAN
-          </button>
-          <button id="btn-leaderboard" class="btn btn-secondary">
-            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path>
-              <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path>
-              <path d="M4 22h16"></path>
-              <path d="M10 14.66V17c0 .55-.45 1-1 1H7c-.55 0-1-.45-1-1v-2.34"></path>
-              <path d="M18 14.66V17c0 .55-.45 1-1 1h-2c-.55 0-1-.45-1-1v-2.34"></path>
-              <path d="M14 6h-4v8.5a2 2 0 0 0 2 2 2 2 0 0 0 2-2V6z"></path>
-            </svg>
-            PAPAN SKOR
-          </button>
-        </div>
+        <!-- Main Body Grid: Action Dock Left & Mini Leaderboard Right -->
+        <main class="menu-main-grid">
+          <!-- Left Action Dock -->
+          <div class="menu-action-dock">
+            <div class="menu-hero-titles">
+              <div id="menu-greeting" class="menu-hero-greeting" aria-live="polite">ready to explore the island?</div>
+              <h1 class="game-title">COIN RUSH <span class="title-accent">ISLAND</span></h1>
+              <p class="tagline">Jelajahi Pulau Tropis, Kumpulkan Harta Karun!</p>
+            </div>
+
+            <!-- Player Name Component (Clean & Minimal) -->
+            <div id="solo-identity-card" class="solo-identity-card">
+              <div class="identity-header-row">
+                <span class="identity-micro-label">YOUR PLAYER NAME</span>
+                <span id="name-feedback-msg" class="name-feedback-mini hidden"></span>
+              </div>
+              
+              <!-- Display Mode (Default when name is saved) -->
+              <div id="player-name-display-row" class="identity-display-row">
+                <div class="identity-avatar-badge">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                  </svg>
+                </div>
+                <span id="player-name-display-text" class="player-name-text">Petualang</span>
+                <div class="identity-action-btns">
+                  <button id="btn-edit-name" class="btn-icon-subtle" type="button" title="Ganti Nama" aria-label="Ganti Nama">
+                    <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2">
+                      <path d="M12 20h9"></path>
+                      <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+                    </svg>
+                  </button>
+                  <button id="btn-random-name" class="btn-icon-subtle" type="button" title="Acak Nama Petualang" aria-label="Acak Nama">
+                    <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2">
+                      <polyline points="23 4 23 10 17 10"></polyline>
+                      <polyline points="1 20 1 14 7 14"></polyline>
+                      <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Edit Mode (Toggled via edit button or Enter) -->
+              <div id="player-name-edit-row" class="identity-edit-row hidden">
+                <input type="text" id="solo-player-name" class="solo-name-input" maxlength="20" placeholder="Ketik nama (1-20)..." autocomplete="off" spellcheck="false" />
+                <button id="btn-save-name" class="btn btn-save-mini" type="button" title="Simpan Nama">
+                  <span id="btn-save-name-text">SAVE</span>
+                </button>
+                <button id="btn-cancel-edit-name" class="btn-icon-subtle" type="button" title="Batal">✕</button>
+              </div>
+            </div>
+
+            <!-- Primary Call To Action -->
+            <div class="menu-hero-actions">
+              <button id="btn-play" class="btn btn-primary btn-play-hero btn-play-solo" type="button">
+                <svg class="btn-icon" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M8 5v14l11-7z"/>
+                </svg>
+                <span>PLAY SOLO</span>
+              </button>
+            </div>
+
+            <!-- Secondary Actions -->
+            <div class="menu-secondary-actions">
+              <button id="btn-how-to-play" class="btn btn-secondary btn-compact" type="button">
+                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+                  <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+                </svg>
+                <span>CARA BERMAIN</span>
+              </button>
+              <button id="btn-settings" class="btn btn-secondary btn-compact" type="button">
+                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="3"/>
+                  <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                </svg>
+                <span>PENGATURAN</span>
+              </button>
+              <button id="btn-leaderboard" class="btn btn-secondary btn-compact" type="button">
+                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path>
+                  <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path>
+                  <path d="M4 22h16"></path>
+                  <path d="M10 14.66V17c0 .55-.45 1-1 1H7c-.55 0-1-.45-1-1v-2.34"></path>
+                  <path d="M18 14.66V17c0 .55-.45 1-1 1h-2c-.55 0-1-.45-1-1v-2.34"></path>
+                  <path d="M14 6h-4v8.5a2 2 0 0 0 2 2 2 2 0 0 0 2-2V6z"></path>
+                </svg>
+                <span>PAPAN SKOR</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Right: Mini Leaderboard Top 3 Card -->
+          <aside id="menu-mini-leaderboard" class="menu-mini-leaderboard">
+            <div class="mini-lb-header">
+              <div class="mini-lb-title-group">
+                <svg class="mini-lb-icon" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2">
+                  <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path>
+                  <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path>
+                  <path d="M4 22h16"></path>
+                  <path d="M10 14.66V17c0 .55-.45 1-1 1H7c-.55 0-1-.45-1-1v-2.34"></path>
+                  <path d="M18 14.66V17c0 .55-.45 1-1 1h-2c-.55 0-1-.45-1-1v-2.34"></path>
+                  <path d="M14 6h-4v8.5a2 2 0 0 0 2 2 2 2 0 0 0 2-2V6z"></path>
+                </svg>
+                <span class="mini-lb-tag">TOP 3 PETUALANGAN</span>
+              </div>
+              <button id="btn-mini-lb-open" class="mini-lb-link-btn" type="button" title="Lihat Papan Skor Lengkap">
+                <span>Semua</span>
+                <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
+              </button>
+            </div>
+            <div id="mini-lb-list" class="mini-lb-list">
+              <div class="mini-lb-item rank-1" id="mini-card-1">
+                <span class="mini-rank-badge rank-1-badge">#1</span>
+                <span class="mini-player-name rank-1-name" id="mini-name-1">Memuat rekor...</span>
+                <span class="mini-score rank-1-score" id="mini-score-1">-</span>
+              </div>
+              <div class="mini-lb-item rank-2" id="mini-card-2">
+                <span class="mini-rank-badge rank-2-badge">#2</span>
+                <span class="mini-player-name rank-2-name" id="mini-name-2">Posisi Terbuka</span>
+                <span class="mini-score rank-2-score" id="mini-score-2">—</span>
+              </div>
+              <div class="mini-lb-item rank-3" id="mini-card-3">
+                <span class="mini-rank-badge rank-3-badge">#3</span>
+                <span class="mini-player-name rank-3-name" id="mini-name-3">Posisi Terbuka</span>
+                <span class="mini-score rank-3-score" id="mini-score-3">—</span>
+              </div>
+            </div>
+          </aside>
+        </main>
+
+        <!-- Bottom Controls Bar -->
+        <footer class="menu-bottom-bar">
+          <div id="menu-desktop-hints" class="menu-controls-hint">
+            <span class="hint-item"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> Bergerak</span>
+            <span class="hint-sep">•</span>
+            <span class="hint-item"><kbd>Mouse</kbd> Kamera</span>
+            <span class="hint-sep">•</span>
+            <span class="hint-item"><kbd>Shift</kbd> Shift Lock</span>
+            <span class="hint-sep">•</span>
+            <span class="hint-item"><kbd>Space</kbd> Lompat</span>
+            <span class="hint-sep">•</span>
+            <span class="hint-item"><kbd>Esc</kbd> Jeda</span>
+          </div>
+          <div id="menu-mobile-hints" class="menu-controls-hint hidden">
+            <span>D-Pad Sentuh • Usap Layar untuk Kamera • Tombol Lompat &amp; Jeda</span>
+          </div>
+        </footer>
       </div>
     </div>
 
-    <!-- How To Play -->
+    <!-- How To Play Modal -->
     <div id="how-to-play" class="overlay hidden">
       <div class="panel">
         <h2>CARA BERMAIN</h2>
         <div class="instructions">
           <div class="instruction-section">
             <h3>
-              <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <rect x="2" y="6" width="20" height="12" rx="2"/>
                 <path d="M6 12h4m-2-2v4m9-3a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 2a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
               </svg>
@@ -93,31 +209,33 @@
                 <p><kbd>SPACE</kbd> Melompat</p>
                 <p><kbd>SHIFT</kbd> Shift Lock (Kamera Terkunci)</p>
                 <p><kbd>E</kbd> Buka Peti / Interaksi</p>
+                <p><kbd>ESC</kbd> Jeda Permainan (Pause)</p>
               </div>
               <div class="control-group">
                 <h4>Ponsel (Layar Sentuh)</h4>
                 <p>Gunakan tombol D-pad di layar untuk bergerak.</p>
                 <p>Ketuk tombol <strong>LOMPAT</strong> untuk melompati rintangan.</p>
                 <p>Ketuk tombol <strong>INTERAKSI</strong> di dekat peti harta.</p>
+                <p>Ketuk tombol <strong>LOCK</strong> untuk mengunci kamera.</p>
               </div>
             </div>
           </div>
           <div class="instruction-section">
             <h3>
-              <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <circle cx="12" cy="12" r="10"/>
                 <circle cx="12" cy="12" r="6"/>
                 <circle cx="12" cy="12" r="2"/>
               </svg>
               TUJUAN &amp; KESELAMATAN
             </h3>
-            <p>Jelajahi pulau tropis, kumpulkan 40 koin, buka peti harta, dan raih skor tertinggi dalam 120 detik!</p>
+            <p>Jelajahi pulau tropis, kumpulkan 80 koin, buka peti harta, dan bertahanlah hingga timer 120 detik selesai!</p>
             <p><strong>Jaga Kesehatan Anda:</strong> Gunakan jembatan kayu untuk menyeberang sungai dengan aman (air sungai mengurangi 10 HP/detik) dan hindari buaya yang berpatroli (gigitan 25 HP)!</p>
-            <p><strong>Item Pemulihan:</strong> Temukan 3 ramuan hijau untuk memulihkan 30 HP dan kunci emas di Gua Rahasia untuk membuka Peti Emas di Altar Kuno.</p>
+            <p><strong>Item Pemulihan:</strong> Temukan ramuan hijau untuk memulihkan 30 HP dan kunci emas di Gua Rahasia untuk membuka Peti Emas di Altar Kuno.</p>
           </div>
           <div class="instruction-section">
             <h3>
-              <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <circle cx="12" cy="8" r="7"/>
                 <polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/>
               </svg>
@@ -127,11 +245,11 @@
             <p>Peti Kayu = <strong>50 poin</strong></p>
             <p>Peti Emas Terkunci = <strong>100 poin</strong> (Butuh Kunci Emas)</p>
             <p>Menemukan Gua Rahasia = <strong>+30 poin</strong></p>
-            <p>Koleksi Sempurna (40 Koin) = <strong>+100 poin bonus</strong></p>
+            <p>Koleksi Sempurna (80 Koin) = <strong>+100 poin bonus</strong></p>
           </div>
         </div>
-        <button id="btn-back-how" class="btn btn-secondary">
-          <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <button id="btn-back-how" class="btn btn-secondary" type="button">
+          <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="19" y1="12" x2="5" y2="12"></line>
             <polyline points="12 19 5 12 12 5"></polyline>
           </svg>
@@ -140,22 +258,62 @@
       </div>
     </div>
 
-    <!-- Settings -->
+    <!-- Settings Modal (Comprehensive Audio & Volumes) -->
     <div id="settings-menu" class="overlay hidden">
-      <div class="panel">
-        <h2>PENGATURAN</h2>
+      <div class="panel settings-panel">
+        <div class="settings-header">
+          <div class="settings-badge">PENGATURAN</div>
+          <h2>AUDIO &amp; PENGALAMAN</h2>
+        </div>
+        
         <div class="settings-content">
-          <div class="setting-row">
-            <label for="sfx-toggle">Efek Suara (SFX)</label>
-            <button id="sfx-toggle" class="toggle-btn active">ON</button>
+          <!-- Master Volume -->
+          <div class="setting-slider-row">
+            <div class="setting-info">
+              <label for="slider-master-volume">Master Volume</label>
+              <span id="val-master-volume" class="slider-val-tag">80%</span>
+            </div>
+            <input type="range" id="slider-master-volume" class="volume-slider" min="0" max="100" value="80" />
           </div>
+
+          <!-- Music Volume -->
+          <div class="setting-slider-row">
+            <div class="setting-info">
+              <label for="slider-music-volume">Musik Latar</label>
+              <span id="val-music-volume" class="slider-val-tag">70%</span>
+            </div>
+            <input type="range" id="slider-music-volume" class="volume-slider" min="0" max="100" value="70" />
+          </div>
+
+          <!-- SFX Volume -->
+          <div class="setting-slider-row">
+            <div class="setting-info">
+              <label for="slider-sfx-volume">Efek Suara (SFX)</label>
+              <span id="val-sfx-volume" class="slider-val-tag">80%</span>
+            </div>
+            <input type="range" id="slider-sfx-volume" class="volume-slider" min="0" max="100" value="80" />
+          </div>
+
+          <!-- Mute Toggle -->
           <div class="setting-row">
-            <label for="music-toggle">Musik Latar</label>
+            <label for="btn-mute-toggle">Bisukan Semua Audio (Mute)</label>
+            <button id="btn-mute-toggle" class="toggle-btn" type="button">OFF</button>
+          </div>
+
+          <!-- Reset Defaults -->
+          <div class="settings-footer-actions">
+            <button id="btn-reset-audio" class="btn btn-secondary btn-xs" type="button">Atur Ulang Default</button>
+          </div>
+
+          <!-- Hidden legacy buttons for compatibility -->
+          <div class="hidden">
+            <button id="sfx-toggle" class="toggle-btn active">ON</button>
             <button id="music-toggle" class="toggle-btn active">ON</button>
           </div>
         </div>
-        <button id="btn-back-settings" class="btn btn-secondary">
-          <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+
+        <button id="btn-back-settings" class="btn btn-secondary" type="button">
+          <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="19" y1="12" x2="5" y2="12"></line>
             <polyline points="12 19 5 12 12 5"></polyline>
           </svg>
@@ -164,201 +322,143 @@
       </div>
     </div>
 
-    <!-- Online Leaderboard Modal -->
+    <!-- Online Leaderboard Modal (Redesigned Dark Tropical Adventure) -->
     <div id="leaderboard-menu" class="overlay hidden">
-      <div class="panel mp-panel">
-        <h2>PAPAN SKOR ONLINE</h2>
-        <div id="leaderboard-status" class="mp-status-pill">Memuat data...</div>
-        <div id="leaderboard-container" class="mp-players-container" style="max-height: 260px; overflow-y: auto; margin: 12px 0;">
-          <div id="leaderboard-list" class="mp-players-list"></div>
+      <div class="panel leaderboard-panel">
+        <div class="leaderboard-header">
+          <div class="leaderboard-badge">
+            <svg class="icon-inline" viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+            </svg>
+            PAPAN SKOR GLOBAL
+          </div>
+          <h2 class="leaderboard-title">10 Petualang Terhebat</h2>
+          <p class="leaderboard-subtitle">Rekor penjelajah pulau tropis tersimpan di cloud Supabase</p>
+          <div id="leaderboard-status" class="leaderboard-status-pill">Memuat data...</div>
         </div>
-        <div class="modal-buttons" style="display: flex; gap: 8px; justify-content: center; margin-top: 12px;">
-          <button id="btn-refresh-leaderboard" class="btn btn-primary" style="padding: 10px 18px; font-size: 14px;">
-            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+
+        <!-- Top 3 Podium Highlights -->
+        <div id="leaderboard-top-podium" class="leaderboard-top-podium"></div>
+
+        <div class="leaderboard-table-scroll">
+          <table class="leaderboard-table">
+            <thead>
+              <tr>
+                <th style="width: 50px;">POS</th>
+                <th>PETUALANG</th>
+                <th style="text-align: right; width: 80px;">SKOR</th>
+                <th style="text-align: right; width: 110px;">WAKTU</th>
+              </tr>
+            </thead>
+            <tbody id="leaderboard-table-body">
+              <tr>
+                <td colspan="4" style="text-align: center; padding: 20px; opacity: 0.7;">Memuat peringkat petualang...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="leaderboard-footer">
+          <button id="btn-refresh-leaderboard" class="btn btn-primary btn-sm" type="button">
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polyline points="23 4 23 10 17 10"></polyline>
               <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
             </svg>
             SEGARKAN
           </button>
-          <button id="btn-back-leaderboard" class="btn btn-secondary" style="padding: 10px 18px; font-size: 14px;">
+          <button id="btn-back-leaderboard" class="btn btn-secondary btn-sm" type="button">
             KEMBALI
           </button>
         </div>
       </div>
     </div>
 
-    <!-- Multiplayer Modal -->
-    <div id="multiplayer-menu" class="overlay hidden">
-      <div class="panel mp-panel">
-        <h2>MAIN BERSAMA (ONLINE)</h2>
-
-        <!-- Player Name Input (Prioritas 9) -->
-        <div class="mp-name-section">
-          <label for="mp-player-name">Nama Pemain Anda:</label>
-          <input type="text" id="mp-player-name" class="mp-input" maxlength="16" value="Petualang" placeholder="Ketik nama Anda (3-16 karakter)..." />
-          <div id="mp-name-preview" class="mp-name-preview">Pratinjau: <span id="mp-name-preview-text" class="preview-tag">Petualang</span></div>
+    <!-- Refined In-Game HUD (Compact & Balanced Hierarchy) -->
+    <div id="hud" class="hidden">
+      <!-- Top-Left: Adventurer Name -->
+      <div class="hud-top-left">
+        <div id="hud-player-pill" class="hud-item hud-pill-player">
+          <div class="hud-avatar-icon">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+              <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+          </div>
+          <div class="hud-text-col">
+            <span class="hud-micro-label">PETUALANG</span>
+            <span id="hud-player-name" class="hud-strong-val">Petualang</span>
+          </div>
         </div>
+      </div>
 
-        <!-- Join / Create Views -->
-        <div id="mp-entry-view" class="mp-entry-view">
-          <div class="mp-cards-grid">
-            <div class="mp-card">
-              <h3>Buat Room Baru</h3>
-              <p>Mulai room baru sebagai Host dan undang teman Anda bermain bersama dengan kode room.</p>
-              <button id="btn-mp-create" class="btn btn-primary mp-action-btn">
-                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M12 5v14M5 12h14"/>
-                </svg>
-                BUAT ROOM
-              </button>
+      <!-- Top-Center: Time & Health Pod -->
+      <div class="hud-top-center">
+        <div class="hud-center-pod">
+          <!-- Timer -->
+          <div class="hud-timer-block">
+            <span class="hud-micro-label">WAKTU</span>
+            <span id="hud-timer" class="hud-timer-val">02:00</span>
+          </div>
+
+          <div class="hud-divider-v"></div>
+
+          <!-- Health Bar -->
+          <div class="hud-health-block">
+            <div class="hud-health-head">
+              <span class="hud-micro-label">KESEHATAN</span>
+              <span id="hud-health-value" class="hud-health-text">100 / 100</span>
             </div>
-
-            <div class="mp-card">
-              <h3>Gabung Room</h3>
-              <p>Masukkan kode room 5 karakter dari Host untuk bergabung dalam satu pulau tropis.</p>
-              <div class="mp-join-row">
-                <input type="text" id="mp-room-input" class="mp-input mp-code-input" maxlength="6" placeholder="KODE ROOM" />
-                <button id="btn-mp-join" class="btn btn-accent mp-action-btn">
-                  GABUNG
-                </button>
-              </div>
+            <div class="health-bar-container">
+              <div id="health-bar-fill" class="health-bar-fill" style="width: 100%;"></div>
             </div>
           </div>
         </div>
+      </div>
 
-        <!-- Active Room Lobby View -->
-        <div id="mp-lobby-view" class="mp-lobby-view hidden">
-          <div class="mp-lobby-header">
-            <div class="mp-lobby-code-box">
-              <span class="mp-code-label">KODE ROOM:</span>
-              <span id="mp-lobby-code" class="mp-code-text">-----</span>
-              <button id="btn-copy-code" class="btn-copy" title="Salin Kode Room">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                </svg>
-              </button>
-            </div>
-            <div id="mp-lobby-status" class="mp-status-pill">Menunggu Pemain...</div>
+      <!-- Top-Right: Score, Coins, Shift Lock & Minimal Pause -->
+      <div class="hud-top-right">
+        <!-- Shift Lock Toggle Pill -->
+        <button id="btn-shift-lock" class="hud-item hud-shift-lock-pill" type="button" title="Toggle Shift Lock (Shift)">
+          <span class="hud-micro-label">KAMERA</span>
+          <span id="hud-shift-lock-val" class="hud-strong-val">BEBAS</span>
+        </button>
+
+        <!-- Score & Coins Pod -->
+        <div class="hud-item hud-score-pod">
+          <div class="hud-score-subpod">
+            <span class="hud-micro-label">SKOR</span>
+            <span id="hud-score" class="hud-strong-val gold">0</span>
           </div>
-
-          <div class="mp-players-container">
-            <h4>Pemain Terhubung (<span id="mp-player-count">0</span>/30)</h4>
-            <div id="mp-players-list" class="mp-players-list"></div>
-          </div>
-
-          <div class="mp-lobby-actions">
-            <button id="btn-mp-start" class="btn btn-primary" disabled>
-              <svg class="btn-icon" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M8 5v14l11-7z"/>
-              </svg>
-              MULAI PERTANDINGAN
-            </button>
-            <button id="btn-mp-leave" class="btn btn-secondary">
-              KELUAR ROOM
-            </button>
+          <div class="hud-divider-v-sub"></div>
+          <div class="hud-score-subpod" id="hud-coins-wrapper">
+            <span class="hud-micro-label">KOIN</span>
+            <span id="hud-coins" class="hud-strong-val">0 / 80</span>
           </div>
         </div>
 
-        <!-- Notification Message -->
-        <div id="mp-error-msg" class="mp-error-msg hidden"></div>
-
-        <!-- Cloud Server Config Panel -->
-        <div id="mp-server-config" class="mp-server-config" style="margin-top: 12px; padding: 10px 14px; background: rgba(15, 23, 42, 0.65); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 10px; font-size: 13px;">
-          <div style="display: flex; justify-content: space-between; align-items: center;" id="toggle-server-config">
-            <span style="font-weight: 600; color: #f59e0b; display: flex; align-items: center; gap: 6px;">
-              <svg class="icon-inline" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
-                <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
-                <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
-                <line x1="6" y1="6" x2="6.01" y2="6"></line>
-                <line x1="6" y1="18" x2="6.01" y2="18"></line>
-              </svg>
-              Server WebSocket:
-            </span>
-            <span id="mp-current-server-badge" style="font-size: 11px; opacity: 0.85; font-family: monospace; max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"></span>
-          </div>
-          <div id="mp-server-config-body" style="margin-top: 8px; display: flex; gap: 6px;">
-            <input type="text" id="mp-custom-ws-input" class="mp-input" placeholder="wss://your-server.onrender.com" style="padding: 6px 10px; font-size: 12px; height: 32px; flex: 1;" />
-            <button id="btn-save-custom-ws" class="btn btn-primary" style="padding: 6px 12px; font-size: 12px; white-space: nowrap; height: 32px;">HUBUNGKAN</button>
-          </div>
-        </div>
-
-        <button id="btn-back-mp" class="btn btn-secondary mp-back-btn">
-          <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="19" y1="12" x2="5" y2="12"></line>
-            <polyline points="12 19 5 12 12 5"></polyline>
+        <!-- Minimalist Pause Button -->
+        <button id="btn-pause-game" class="hud-pause-btn-minimal" type="button" aria-label="Jeda Permainan (Esc)" title="Jeda Permainan (Esc)">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+            <rect x="6" y="4" width="3.5" height="16" rx="1.5"></rect>
+            <rect x="14.5" y="4" width="3.5" height="16" rx="1.5"></rect>
           </svg>
-          KEMBALI KE MENU
         </button>
       </div>
-    </div>
 
-    <!-- HUD -->
-    <div id="hud" class="hidden">
-      <!-- Multiplayer Room Pill -->
-      <div id="hud-mp-info" class="hud-item hud-mp-pill hidden">
-        <div class="hud-label">ROOM</div>
-        <div id="hud-mp-code" class="hud-value">-----</div>
-      </div>
-
-      <!-- Player Identity Pill -->
-      <div id="hud-player-pill" class="hud-item hud-player-pill">
-        <div class="hud-label">PETUALANG</div>
-        <div id="hud-player-name" class="hud-value">Petualang</div>
-      </div>
-
-      <!-- Shift Lock Toggle Pill -->
-      <button id="btn-shift-lock" class="hud-item hud-shift-lock-pill" title="Toggle Shift Lock (Shift)">
-        <div class="hud-label">KAMERA</div>
-        <div id="hud-shift-lock-val" class="hud-value">BEBAS</div>
-      </button>
-
-      <div class="hud-item">
-        <div class="hud-label">
-          <svg class="hud-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="10"/>
-            <polyline points="12 6 12 12 16 14"/>
-          </svg>
-          WAKTU
+      <!-- In-Game Objective Tracker (Island Quest) -->
+      <div id="hud-quest-tracker" class="hud-quest-tracker">
+        <div class="quest-header">
+          <span class="quest-tag">ISLAND QUEST</span>
+          <span id="quest-status-badge" class="quest-badge">ACTIVE</span>
         </div>
-        <div id="hud-timer" class="hud-value">02:00</div>
-      </div>
-
-      <div class="hud-item hud-health-item">
-        <div class="hud-label">
-          <svg class="hud-icon health-icon" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
-          </svg>
-          KESEHATAN
+        <div class="quest-item-row">
+          <span class="quest-label">Koin Pulau:</span>
+          <span id="quest-coins-val" class="quest-value">00 / 80</span>
         </div>
-        <div class="health-bar-container">
-          <div id="health-bar-fill" class="health-bar-fill" style="width: 100%;"></div>
-        </div>
-        <div id="hud-health-value" class="hud-subvalue">100 / 100</div>
-      </div>
-
-      <div class="hud-item">
-        <div class="hud-label">
-          <svg class="hud-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-          </svg>
-          SKOR
-        </div>
-        <div id="hud-score" class="hud-value">0</div>
-      </div>
-
-      <div class="hud-item">
-        <div class="hud-label">
-          <svg class="hud-icon" viewBox="0 0 24 24" fill="currentColor">
-            <circle cx="12" cy="12" r="9"/>
-          </svg>
-          KOIN
-        </div>
-        <div id="hud-coins" class="hud-value">0 / 40</div>
       </div>
     </div>
 
-    <!-- Active Side Missions HUD -->
+    <!-- Active Side Missions HUD (Collapsible) -->
     <div id="hud-missions" class="hud-missions hidden">
       <div class="hud-missions-title">
         <svg class="mission-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -429,61 +529,174 @@
     <!-- Coin / Damage Popup Effect -->
     <div id="coin-popup" class="coin-popup hidden">+10</div>
 
-    <!-- Cinematic Pre-Match Briefing Overlay -->
-    <div id="briefing-overlay" class="briefing-overlay hidden">
-      <div class="briefing-top-bar">
-        <div class="briefing-badge">
-          <svg class="icon-inline" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polygon points="12 8 8 12 12 16 12 8"/></svg>
-          <span>BRIEFING PULAU</span>
+    <!-- Start Adventure Transition Banner -->
+    <div id="adventure-start-banner" class="adventure-start-banner hidden">
+      <div class="banner-inner">
+        <div class="banner-tag">COIN RUSH ISLAND</div>
+        <h1 class="banner-title">LET THE ADVENTURE BEGIN</h1>
+        <p class="banner-sub">Jelajahi pulau tropis, kumpulkan koin &amp; bertahanlah!</p>
+      </div>
+    </div>
+
+    <!-- Pause Overlay (Clean Minimalist Design) -->
+    <div id="pause-overlay" class="overlay hidden">
+      <div class="panel pause-panel">
+        <div class="pause-header">
+          <div class="pause-badge">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+              <rect x="6" y="4" width="3.5" height="16" rx="1.5"></rect>
+              <rect x="14.5" y="4" width="3.5" height="16" rx="1.5"></rect>
+            </svg>
+            PAUSED
+          </div>
+          <h2 class="pause-title">PERMAINAN DIJEDA</h2>
+          <p class="pause-subtitle">Waktu dan pergerakan dihentikan sementara</p>
         </div>
-        <button id="btn-skip-briefing" class="btn-skip-briefing">
-          LEWATI BRIEFING &gt;&gt;
+        <div class="pause-buttons">
+          <button id="btn-resume-game" class="btn btn-primary btn-lg" type="button">
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+            RESUME ADVENTURE
+          </button>
+          <button id="btn-restart-game" class="btn btn-secondary" type="button">
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="23 4 23 10 17 10"></polyline>
+              <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+            </svg>
+            RESTART
+          </button>
+          <button id="btn-exit-game" class="btn btn-secondary btn-danger-tone" type="button">
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+              <polyline points="16 17 21 12 16 7"></polyline>
+              <line x1="21" y1="12" x2="9" y2="12"></line>
+            </svg>
+            EXIT TO MENU
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Exit Confirmation Modal -->
+    <div id="exit-confirm-modal" class="overlay hidden">
+      <div class="panel confirm-panel">
+        <div class="confirm-icon-wrap">
+          <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="#f59e0b" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+          </svg>
+        </div>
+        <h3 class="confirm-title">Keluar ke Menu Utama?</h3>
+        <p class="confirm-desc">Sesi saat ini akan dihentikan dan skor tidak akan dicatat ke papan skor.</p>
+        <div class="confirm-buttons">
+          <button id="btn-confirm-exit" class="btn btn-danger" type="button">YA, KELUAR</button>
+          <button id="btn-cancel-exit" class="btn btn-secondary" type="button">BATAL</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Cinematic Pre-Match Briefing & Tutorial Overlay -->
+    <div id="briefing-overlay" class="briefing-overlay hidden">
+      <div class="briefing-modal-panel">
+        <div class="briefing-badge-tag">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polygon points="12 8 8 12 12 16 12 8"/></svg>
+          MISSION BRIEFING
+        </div>
+        <h2 class="briefing-main-title">YOUR MISSION</h2>
+        
+        <div class="briefing-goals-grid">
+          <div class="briefing-goal-card">
+            <div class="goal-icon">🧭</div>
+            <div class="goal-title">Explore the Island</div>
+            <div class="goal-desc">Jelajahi pantai, reruntuhan kuno, gua rahasia, dan temukan peti harta karun!</div>
+          </div>
+          <div class="briefing-goal-card">
+            <div class="goal-icon">🪙</div>
+            <div class="goal-title">Collect 80 Coins</div>
+            <div class="goal-desc">Kumpulkan 80 koin emas yang tersebar di pulau dan bangun bonus kombo.</div>
+          </div>
+          <div class="briefing-goal-card">
+            <div class="goal-icon">⏱️</div>
+            <div class="goal-title">Stay Alive in 120s</div>
+            <div class="goal-desc">Hindari air sungai (-10 HP/dtk), buaya rawa (gigitan 25 HP), dan jebakan hingga timer habis!</div>
+          </div>
+        </div>
+
+        <!-- Controls Guide adapted to device -->
+        <div class="briefing-tutorial-section">
+          <div class="tutorial-header">PANDUAN KONTROL &amp; KAMERA</div>
+          <div id="briefing-desktop-controls" class="tutorial-controls-row">
+            <span class="ctrl-pill"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> Move</span>
+            <span class="ctrl-pill"><kbd>Mouse</kbd> Look Around</span>
+            <span class="ctrl-pill"><kbd>Shift</kbd> Shift Lock</span>
+            <span class="ctrl-pill"><kbd>Space</kbd> Jump</span>
+            <span class="ctrl-pill"><kbd>Esc</kbd> Pause</span>
+          </div>
+          <div id="briefing-mobile-controls" class="tutorial-controls-row hidden">
+            <span class="ctrl-pill">D-Pad: Bergerak</span>
+            <span class="ctrl-pill">Usap Layar: Putar Kamera</span>
+            <span class="ctrl-pill">Tombol LOCK: Kunci Kamera</span>
+            <span class="ctrl-pill">LOMPAT: Melompat</span>
+            <span class="ctrl-pill">PAUSE: Jeda</span>
+          </div>
+        </div>
+
+        <div class="briefing-footer-row">
+          <label class="briefing-dont-show-label">
+            <input type="checkbox" id="briefing-dont-show" />
+            <span>Jangan tampilkan lagi (Don't show again)</span>
+          </label>
+          <button id="btn-skip-briefing" class="btn btn-primary btn-skip-action" type="button">
+            MULAI PETUALANGAN &gt;&gt;
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 15-Second Cinematic Island Intro Overlay -->
+    <div id="cinematic-overlay" class="cinematic-overlay hidden">
+      <!-- Top Skip Intro Button (Minimalist & Accessible) -->
+      <div class="cinematic-top-bar">
+        <button id="btn-skip-intro" class="btn-skip-intro" type="button" aria-label="Lewati Intro Sinematik (Skip Intro)">
+          <span>LEWATI INTRO</span>
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor">
+            <polygon points="5 4 15 12 5 20 5 4"></polygon>
+            <polygon points="13 4 23 12 13 20 13 4"></polygon>
+          </svg>
         </button>
       </div>
-      <div id="briefing-banner" class="briefing-banner">
-        <h1 id="briefing-title" class="briefing-title">COIN RUSH ISLAND</h1>
-        <p id="briefing-subtitle" class="briefing-subtitle">Jelajahi pulau, kumpulkan harta, dan bertahan hidup!</p>
-      </div>
-      <div id="briefing-waiting" class="briefing-waiting hidden">
-        <div class="waiting-spinner"></div>
-        <p>Menunggu pemain lain & persiapan pertandingan...</p>
+
+      <!-- Cinematic Lower-Third Content & Location Markers -->
+      <div class="cinematic-content">
+        <!-- Location Marker Pill (Animates smoothly per scene) -->
+        <div id="cinematic-marker" class="cinematic-marker hidden">
+          <span id="cinematic-marker-icon" class="marker-icon">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+              <circle cx="12" cy="12" r="10"></circle>
+            </svg>
+          </span>
+          <span id="cinematic-marker-text" class="marker-text">TREASURE ZONE</span>
+        </div>
+
+        <!-- Scene Text Card -->
+        <div class="cinematic-text-card">
+          <h2 id="cinematic-title" class="cinematic-title">WELCOME TO THE ISLAND</h2>
+          <p id="cinematic-subtitle" class="cinematic-subtitle">A little island. A new adventure.</p>
+        </div>
       </div>
     </div>
 
-    <!-- Match Countdown Overlay -->
+    <!-- Match Countdown Overlay (3 -> 2 -> 1 -> GO!) -->
     <div id="countdown-overlay" class="countdown-overlay hidden">
-      <div id="countdown-number" class="countdown-number">3</div>
-      <div id="countdown-sub" class="countdown-sub">BERSIAPLAH!</div>
-    </div>
-
-    <!-- Spectator Mode HUD -->
-    <div id="spectator-hud" class="spectator-hud hidden">
-      <div class="spectator-top-bar">
-        <div class="spectator-badge">
-          <svg class="icon-inline" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/></svg>
-          <span>MODE PENONTON</span>
-        </div>
-        <div class="spectator-target-info">
-          <span class="target-label">MENONTON:</span>
-          <span id="spectator-target-name" class="target-name">Petualang</span>
-          <div class="spectator-target-hp">
-            <div id="spectator-target-hp-fill" class="target-hp-fill" style="width: 100%;"></div>
-          </div>
-          <span id="spectator-target-score" class="target-score">0 Poin</span>
-        </div>
-        <button id="btn-spectator-exit" class="btn btn-secondary btn-sm">KEMBALI KE MENU</button>
-      </div>
-      <div class="spectator-bottom-bar">
-        <button id="btn-spectate-prev" class="btn btn-secondary btn-sm">&larr; Pemain Sebelumnya</button>
-        <span id="spectator-count" class="spectator-count">Pemain 1 dari 4</span>
-        <button id="btn-spectate-next" class="btn btn-secondary btn-sm">Pemain Berikutnya &rarr;</button>
+      <div class="countdown-card">
+        <div id="countdown-number" class="countdown-number">3</div>
+        <div id="countdown-sub" class="countdown-sub">BERSIAPLAH!</div>
       </div>
     </div>
 
-    <!-- Result / Elimination Screen -->
+    <!-- Result / Game Over Screen (Matching Indie Adventure Design) -->
     <div id="result-screen" class="overlay hidden">
-      <div class="result-content">
-        <!-- 1. Ikon Status -->
+      <div class="result-content panel">
         <div id="result-badge" class="result-badge">
           <svg id="result-icon-clock" class="result-header-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="10"/>
@@ -496,25 +709,29 @@
           </svg>
         </div>
 
-        <!-- 2. Judul Status -->
-        <h2 id="result-title" class="result-title">WAKTU HABIS!</h2>
-
-        <!-- 3. Deskripsi Singkat Penyebab -->
+        <h2 id="result-title" class="result-title">PETUALANGAN SELESAI!</h2>
         <p id="result-reason" class="result-reason hidden"></p>
 
-        <!-- 4 & 5 & 6. Kartu Skor, Statistik & Rekor Pribadi -->
         <div class="result-stats">
           <div class="result-score-card">
-            <div class="stat-label">SKOR AKHIR</div>
+            <div class="stat-label">FINAL SCORE</div>
             <div id="result-score" class="stat-value big">0</div>
           </div>
           <div class="result-stats-grid">
             <div class="stat-item">
-              <div class="stat-label">KOIN</div>
-              <div id="result-coins" class="stat-value">0 / 40</div>
+              <div class="stat-label">TOTAL KOIN</div>
+              <div id="result-coins" class="stat-value">0 / 80</div>
             </div>
             <div class="stat-item">
-              <div class="stat-label">PETI</div>
+              <div class="stat-label">FINAL HEALTH</div>
+              <div id="result-final-health" class="stat-value">100 HP</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-label">DURASI</div>
+              <div id="result-duration" class="stat-value">120s</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-label">PETI DIBUKA</div>
               <div id="result-chests" class="stat-value">0 / 6</div>
             </div>
             <div class="stat-item">
@@ -522,65 +739,41 @@
               <div id="result-max-combo" class="stat-value">0x</div>
             </div>
             <div class="stat-item">
-              <div class="stat-label">MISI SELESAI</div>
-              <div id="result-missions" class="stat-value">0 / 3</div>
-            </div>
-            <div class="stat-item full-width">
               <div class="stat-label">REKOR PRIBADI</div>
               <div id="result-high-score" class="stat-value">0</div>
             </div>
           </div>
         </div>
 
-        <!-- 7. Informasi / Tips Permainan -->
-        <div class="result-message" id="result-message">Petualangan hebat!</div>
+        <!-- Supabase Cloud Score Submission Status Card -->
+        <div id="result-submit-card" class="result-submit-card">
+          <div class="submit-card-header">
+            <svg class="icon-inline" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+            </svg>
+            Status Papan Skor:
+          </div>
+          <div id="result-submit-status" class="submit-status-pill">Menyimpan skor petualang...</div>
+          <button id="btn-retry-submit" class="btn btn-secondary btn-xs hidden" type="button">Coba Simpan Ulang</button>
+        </div>
 
-        <!-- 8. Tombol Aksi -->
+        <div class="result-message" id="result-message">Petualangan hebat di Coin Rush Island!</div>
+
         <div class="result-buttons">
-          <button id="btn-play-again" class="btn btn-primary">
-            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <button id="btn-play-again" class="btn btn-primary" type="button">
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polyline points="23 4 23 10 17 10"></polyline>
               <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
             </svg>
-            <span id="btn-play-again-text">MAIN LAGI</span>
+            <span id="btn-play-again-text">PLAY AGAIN</span>
           </button>
-          <button id="btn-spectate" class="btn btn-primary btn-accent hidden">
-            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/></svg>
-            MODE PENONTON
-          </button>
-          <button id="btn-main-menu" class="btn btn-secondary">
-            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <button id="btn-main-menu" class="btn btn-secondary" type="button">
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
               <polyline points="9 22 9 12 15 12 15 22"></polyline>
             </svg>
-            MENU UTAMA
+            <span>BACK TO MENU</span>
           </button>
-        </div>
-
-        <!-- 9. Konten Tambahan: Podium 3 Pemenang & Leaderboard Pertandingan -->
-        <div id="mp-results-table" class="mp-results-table hidden">
-          <h3 class="mp-results-heading">PERINGKAT KOMPETISI PULAU</h3>
-          <div id="mp-podium" class="mp-podium">
-            <div id="podium-2" class="podium-step step-2">
-              <div class="podium-badge">#2 PERAK</div>
-              <div class="podium-name" id="podium-name-2">-</div>
-              <div class="podium-score" id="podium-score-2">0</div>
-              <div class="podium-pillar pillar-2">2</div>
-            </div>
-            <div id="podium-1" class="podium-step step-1">
-              <div class="podium-badge">#1 EMAS</div>
-              <div class="podium-name" id="podium-name-1">-</div>
-              <div class="podium-score" id="podium-score-1">0</div>
-              <div class="podium-pillar pillar-1">1</div>
-            </div>
-            <div id="podium-3" class="podium-step step-3">
-              <div class="podium-badge">#3 PERUNGGU</div>
-              <div class="podium-name" id="podium-name-3">-</div>
-              <div class="podium-score" id="podium-score-3">0</div>
-              <div class="podium-pillar pillar-3">3</div>
-            </div>
-          </div>
-          <div id="mp-leaderboard-list" class="mp-leaderboard-list"></div>
         </div>
       </div>
     </div>
